@@ -4173,18 +4173,18 @@ document.getElementById('master-file-input').addEventListener('change', async (e
   const header = rows[0];
 
   const idx = {
-    code: findCol(header, ['Adhoc Serial']),
-    outletName: findCol(header, ['Outlet Name Conc']),
+    code: findCol(header, ['Adhoc Serial', 'Client Code']),
+    outletName: findCol(header, ['Outlet Name Conc', 'Name']),
     lng: findCol(header, ['Longitude']),
     lat: findCol(header, ['Latitude']),
-    rep: findCol(header, ['New Repzo User']),
+    rep: findCol(header, ['New Repzo User', 'Representative__1', 'Representative 1', 'Representative__2', 'Representative 2']),
     freq: findCol(header, ['Freq']),
     weeklyVisit: findCol(header, ['Weekly Visit']),
     storeType: findCol(header, ['النوع', 'Store Type', 'Type']),
     channel: findCol(header, ['Channel', 'تصنيف', 'قناة']),
   };
   if(idx.code===-1 || idx.lat===-1 || idx.lng===-1 || idx.rep===-1){
-    progress.textContent = 'الملف مش بنفس فورمات الشيت المتفق عليه، مش لاقي الأعمدة المطلوبة.';
+    progress.textContent = 'الملف مش بنفس فورمات الشيت المتفق عليه، مش لاقي الأعمدة المطلوبة (لازم يكون فيه على الأقل: كود المحل، Latitude، Longitude، وعمود المندوب).';
     doneActions.style.display = 'flex';
     return;
   }
@@ -4192,6 +4192,8 @@ document.getElementById('master-file-input').addEventListener('change', async (e
   for(let w=1; w<=4; w++){
     dayIdx[w] = DAYS.map(d => findCol(header, [`${d.key} ${w}`]));
   }
+  // لو الملف أصلاً مفيهوش أعمدة أيام خالص (زي ملفات Repzo القياسية)، هنوزّع الأيام تلقائي وبشكل متوازن بدل ما نعتبر المحل من غير جدول = محل متشال
+  const hasAnyDayColumns = Object.values(dayIdx).some(arr => arr.some(c => c !== -1));
 
   const byRep = {};
   let outOfBoundsCount = 0;
@@ -4224,11 +4226,22 @@ document.getElementById('master-file-input').addEventListener('change', async (e
         if(colIdx!==-1 && Number(row[colIdx])===1) daysSet.add(dayI);
       });
     });
-    const assignment = daysSet.size>0 ? {
-      freq: isWeekly ? 'weekly' : 'biweekly',
-      weekGroup: isWeekly ? null : weekGroup,
-      days: Array.from(daysSet).sort((a,b)=>a-b),
-    } : null;
+
+    let assignment;
+    if(daysSet.size>0){
+      assignment = {
+        freq: isWeekly ? 'weekly' : 'biweekly',
+        weekGroup: isWeekly ? null : weekGroup,
+        days: Array.from(daysSet).sort((a,b)=>a-b),
+      };
+    } else if(!hasAnyDayColumns){
+      // الملف مفيهوش نظام أيام خالص، فبنوزّع يوم واحد أسبوعي بشكل متوازن على حسب المحلات اللي جمعناها لحد دلوقتي لنفس المندوب
+      const repStoresSoFar = byRep[rep] || [];
+      const day = pickBalancedDay(repStoresSoFar);
+      assignment = { freq:'weekly', weekGroup:null, days:[day] };
+    } else {
+      assignment = null; // الملف فيه نظام أيام، بس المحل ده تحديدًا من غير أي زيارة = هيتشال
+    }
 
     const storeTypeVal = idx.storeType!==-1 ? String(row[idx.storeType]||'').trim() : '';
     const channelVal = idx.channel!==-1 ? String(row[idx.channel]||'').trim() : '';
