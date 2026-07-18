@@ -29,24 +29,28 @@ window.__SEED_DATA__ = {"TDM1":[{"id":"s_seed_0_5656","name":"العائلات",
 
 <style>
 :root{
-  --bg:#F7F5F4;
+  --bg:#EEF3F8;
   --panel:#FFFFFF;
-  --ink:#181818;
-  --ink-soft:#665F5D;
-  --line:#E9E2DF;
-  --primary:#E12C63;
-  --primary-dark:#AE1B49;
-  --primary-tint:#FCE8EE;
-  --accent-orange:#F4791E;
-  --brand-gradient:linear-gradient(120deg,#F4791E 0%,#EE4A4C 50%,#E12C63 100%);
-  --amber:#F4791E;
-  --amber-tint:#FDECDD;
+  --ink:#122357;
+  --ink-soft:#4A5C7A;
+  --line:#D7E2F0;
+  --primary:#1E6CB6;
+  --primary-dark:#122357;
+  --primary-tint:#E7F0FA;
+  --accent-orange:#C99A4E;
+  --brand-gradient:linear-gradient(120deg,#122357 0%,#1E6CB6 55%,#4EDBEF 100%);
+  --amber:#C99A4E;
+  --amber-tint:#FBF3E3;
   --red:#D6553F;
   --red-tint:#FBE6E2;
   --green:#2E9E5B;
   --green-tint:#E4F5EA;
+  --brand-navy:#122357;
+  --brand-blue:#1E6CB6;
+  --brand-gold:#C99A4E;
+  --brand-cyan:#4EDBEF;
   --radius:14px;
-  --shadow:0 10px 30px -12px rgba(24,24,24,.22);
+  --shadow:0 10px 30px -12px rgba(18,35,87,.25);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Tajawal',sans-serif;}
@@ -58,19 +62,16 @@ input,select{font-family:inherit;}
 /* ---------- Login ---------- */
 #login-screen{
   min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(244,121,30,.10), transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(225,44,99,.12), transparent 45%),
-    var(--bg);
+  background:var(--brand-gradient);
 }
 .login-card{
   background:var(--panel);border-radius:20px;box-shadow:var(--shadow);
   padding:36px 32px;width:100%;max-width:400px;border:1px solid var(--line);
 }
-.brand-mark{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-.brand-mark img.logo{height:34px;width:auto;flex-shrink:0;display:block;}
-.brand-mark .name{font-family:'Cairo',sans-serif;font-weight:800;font-size:20px;color:var(--ink);}
-.login-card .sub{color:var(--ink-soft);font-size:14px;margin:0 0 26px;}
+.brand-mark{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:6px;text-align:center;}
+.brand-mark img.logo{height:88px;width:auto;flex-shrink:0;display:block;border-radius:18px;}
+.brand-mark .name{font-family:'Cairo',sans-serif;font-weight:800;font-size:24px;color:var(--ink);letter-spacing:.02em;}
+.login-card .sub{color:var(--ink-soft);font-size:14px;margin:0 0 26px;text-align:center;}
 .field{margin-bottom:16px;}
 .field label{display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
 .field select,.field input{
@@ -90,12 +91,14 @@ input,select{font-family:inherit;}
 #app{display:none;height:100vh;flex-direction:column;}
 header.topbar{
   background:var(--brand-gradient);color:#fff;padding:10px 18px;display:flex;align-items:center;
-  gap:14px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(0,0,0,.18);z-index:1000;position:relative;
+  gap:14px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(18,35,87,.25);z-index:1000;position:relative;
 }
+header.topbar .brand-mark{flex-direction:row;text-align:right;margin-bottom:0;}
 header.topbar .brand-mark .name{color:#fff;font-size:17px;}
-header.topbar .brand-mark img.logo{height:22px;background:#fff;border-radius:7px;padding:5px 8px;box-shadow:0 1px 4px rgba(0,0,0,.15);}
+header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,.15);}
 .user-chip{
   background:rgba(255,255,255,.14);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;
+
   display:flex;align-items:center;gap:8px;
 }
 .user-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--amber);}
@@ -275,20 +278,14 @@ header.topbar .brand-mark img.logo{height:22px;background:#fff;border-radius:7px
     </div>
     <div class="user-chip"><span class="dot"></span><span id="current-user-label"></span></div>
     <div class="topbar-actions">
-      <button class="tb-btn" id="btn-today"><span>📅</span><span class="label">جدول الزيارات</span></button>
       <button class="tb-btn" id="btn-add-mode"><span>＋</span><span class="label">إضافة محل</span></button>
       <button class="tb-btn" id="btn-locate"><span>📍</span><span class="label">موقعي</span></button>
       <div class="menu-wrap">
         <button class="tb-btn" id="btn-menu-toggle"><span>☰</span></button>
         <div class="dropdown-menu" id="dropdown-menu">
-          <button class="dd-item" id="btn-backup-export"><span>💾</span> نسخة احتياطية</button>
-          <button class="dd-item" id="btn-backup-import"><span>📂</span> استيراد نسخة</button>
           <button class="dd-item" id="btn-export"><span>⇩</span> تصدير إكسل</button>
-          <button class="dd-item" id="btn-zones"><span>▦</span> الزونات</button>
           <div class="dd-divider" id="dd-admin-divider" style="display:none;"></div>
           <button class="dd-item admin-only" id="btn-import" style="display:none;"><span>⇪</span> استيراد إكسل</button>
-          <button class="dd-item admin-only" id="btn-bulk-zone" style="display:none;"><span>▭</span> تحديد جماعي للزون</button>
-          <button class="dd-item admin-only" id="btn-swap-days" style="display:none;"><span>🔁</span> تبديل يومين بالكامل</button>
           <button class="dd-item admin-only" id="btn-master-update" style="display:none;"><span>⟳</span> تحديث الشيت الرئيسي</button>
           <button class="dd-item admin-only" id="btn-manage-surveys" style="display:none;"><span>📋</span> إدارة الاستبيانات</button>
           <button class="dd-item admin-only" id="btn-coordinators" style="display:none;"><span>👤</span> المنسقين</button>
@@ -308,15 +305,8 @@ header.topbar .brand-mark img.logo{height:22px;background:#fff;border-radius:7px
   </header>
 
   <div class="statbar">
-    <div class="chip"><span class="sw" style="background:var(--green)"></span>متسكن <b id="stat-assigned">0</b></div>
-    <div class="chip"><span class="sw" style="background:var(--amber)"></span>محتاج تسكين <b id="stat-unassigned">0</b></div>
-    <div class="chip"><span class="sw" style="background:var(--red)"></span>محتاج بديل <b id="stat-problem">0</b></div>
     <div class="chip">الإجمالي <b id="stat-total">0</b></div>
     <div class="chip" id="stat-monthly-chip">زيارات الشهر <b id="stat-monthly">0</b> / 360-400</div>
-    <label class="chip" style="cursor:pointer;">
-      <input type="checkbox" id="toggle-zones" checked style="margin:0;">
-      إظهار الزونات
-    </label>
     <label class="chip" style="cursor:pointer;">
       <input type="checkbox" id="toggle-all-stores" style="margin:0;">
       إظهار كل المحلات
@@ -494,43 +484,6 @@ header.topbar .brand-mark img.logo{height:22px;background:#fff;border-radius:7px
     <div class="modal-actions">
       <button class="btn-ghost" id="visits-report-close">قفل</button>
       <button class="btn-solid" id="visits-report-download">⬇️ تحميل Excel</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ Today's Schedule Modal ============ -->
-<div class="overlay" id="overlay-today">
-  <div class="modal" style="max-width:480px;">
-    <h3>جدول الزيارات</h3>
-    <div class="field">
-      <label>الأسبوع</label>
-      <div class="radio-row" id="today-week-row">
-        <label class="radio-pill" data-val="1">1</label>
-        <label class="radio-pill" data-val="2">2</label>
-        <label class="radio-pill" data-val="3">3</label>
-        <label class="radio-pill" data-val="4">4</label>
-      </div>
-    </div>
-    <div class="field">
-      <label>اختار يوم أو أكتر عشان تشوف مساره</label>
-      <div class="days-grid" id="today-days-grid"></div>
-    </div>
-    <p class="m-sub" id="today-sub">اختار يوم من فوق عشان تشوف المحلات والمسار بتاعه.</p>
-    <div id="today-list" style="display:flex;flex-direction:column;gap:8px;max-height:32vh;overflow-y:auto;"></div>
-
-    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);">
-      <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:8px;">أو ارسم مسار زون كامل (بغض النظر عن اليوم)</label>
-      <div style="display:flex;gap:8px;">
-        <select id="today-zone-select" style="flex:1;padding:9px;border-radius:9px;border:1.5px solid var(--line);"></select>
-        <button class="btn-ghost" id="btn-zone-route" style="flex:none;padding:9px 16px;">ارسم المسار</button>
-      </div>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn-ghost" id="today-clear-route" style="width:100%;">امسح كل المسارات</button>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-solid" id="today-close" style="width:100%;">قفل</button>
     </div>
   </div>
 </div>
@@ -818,7 +771,7 @@ const GAS_STATION_CHAINS = [
   '7 MART','Tawfeer Supermarket','Pick N Go',
 ];
 const NEARBY_CHAIN_CHECK_METERS = 250;
-const VISIT_GEOFENCE_METERS = 250; // نطاق بدء/إنهاء الزيارة حوالين المحل
+const VISIT_GEOFENCE_METERS = 100; // نطاق بدء/إنهاء الزيارة حوالين المحل
 const VISIT_SECTIONS = [
   {id:'visit_availability', icon:'📦', label:'توافر المنتجات'},
   {id:'visit_inventory',    icon:'📋', label:'جرد المخزون'},
@@ -927,7 +880,7 @@ async function checkTerritoryConflict(repCode, lat, lng){
   ownStores.forEach(s=>{ const d=haversineMeters(lat,lng,s.lat,s.lng); if(d<ownMinDist) ownMinDist=d; });
 
   const otherCodes = [];
-  for(let i=1;i<=44;i++){ const code='TDM'+i; if(code!==repCode) otherCodes.push(code); }
+  for(let i=1;i<=BASE_REP_COUNT;i++){ const code=BASE_REP_PREFIX+i; if(code!==repCode) otherCodes.push(code); }
 
   const results = await Promise.all(otherCodes.map(async code=>{
     let list;
@@ -957,9 +910,11 @@ async function checkTerritoryConflict(repCode, lat, lng){
 
 
 
+const BASE_REP_COUNT = 25;
+const BASE_REP_PREFIX = 'ran';
 function buildUsers(){
   const list = [];
-  for(let i=1;i<=44;i++) list.push('TDM'+i);
+  for(let i=1;i<=BASE_REP_COUNT;i++) list.push(BASE_REP_PREFIX+i);
   customReps.forEach(r=>list.push(r.code));
   list.push('admin');
   return list;
@@ -968,10 +923,10 @@ function passwordFor(code){
   if(code==='admin') return '1086';
   const custom = customReps.find(r=>r.code===code);
   if(custom) return custom.password;
-  const n = parseInt(code.replace('TDM',''),10);
+  const n = parseInt(code.replace(BASE_REP_PREFIX,''),10);
+  if(!n || n<1 || n>BASE_REP_COUNT) return null;
   if(n>=1 && n<=9) return String(n).repeat(4);
-  if(n>=10 && n<=44) return String(n).repeat(2);
-  return null;
+  return String(n).repeat(2);
 }
 
 const ZONE_COLORS = ['#0B4F4A','#E2A33B','#D6553F','#3E8E5A','#5B6FD6','#B15FC4','#1A9DA6','#C97A2B','#7A6FF0','#2E9E5B','#D64F8C','#4C8FBF','#9C6B2E','#6E9E2E'];
@@ -1019,7 +974,7 @@ const ACTION_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzBj2IyWQEY
 /* ===================== المشاريع (Multi-Project) ===================== */
 // كل مشروع منفصل تمامًا: مناديب مختلفة، بيانات مختلفة، شيت جوجل شيت ودرايف منفصلين.
 // المشروع الحالي بيتحدد من ليستة صفحة تسجيل الدخول، وكل مفاتيح التخزين المحلي (window.storage) بتتحط جوه namespace بتاعه.
-let currentProject = localStorage.getItem('masar_last_project') || 'gorilla';
+let currentProject = localStorage.getItem('masar_last_project') || 'Rani';
 function pk(key){ return currentProject + '::' + key; }
 
 /* بصمة جهاز ثابتة لكل موبايل (بتتولد مرة واحدة وتتخزن في localStorage للأبد) */
@@ -1193,7 +1148,7 @@ document.getElementById('coordinators-close').addEventListener('click', ()=>{
 });
 function allRepCodes(){
   const codes = [];
-  for(let i=1;i<=44;i++) codes.push('TDM'+i);
+  for(let i=1;i<=BASE_REP_COUNT;i++) codes.push(BASE_REP_PREFIX+i);
   customReps.forEach(r=>{ if(!codes.includes(r.code)) codes.push(r.code); });
   return codes;
 }
@@ -1942,12 +1897,12 @@ function addRepOptionToAllSelects(code){
 function resetRepSelectsToBase(){
   restoreRepSelect.innerHTML = '';
   storeOwnerRepSelect.innerHTML = '';
-  for(let i=1;i<=44;i++){
+  for(let i=1;i<=BASE_REP_COUNT;i++){
     const opt1 = document.createElement('option');
-    opt1.value = 'TDM'+i; opt1.textContent = 'TDM'+i;
+    opt1.value = BASE_REP_PREFIX+i; opt1.textContent = BASE_REP_PREFIX+i;
     restoreRepSelect.appendChild(opt1);
     const opt2 = document.createElement('option');
-    opt2.value = 'TDM'+i; opt2.textContent = 'TDM'+i;
+    opt2.value = BASE_REP_PREFIX+i; opt2.textContent = BASE_REP_PREFIX+i;
     storeOwnerRepSelect.appendChild(opt2);
   }
 }
@@ -1959,13 +1914,13 @@ async function refreshProjectDependentUI(){
 }
 
 async function loadProjectsList(){
-  if(!ACTION_LOG_ENDPOINT) return ['gorilla'];
+  if(!ACTION_LOG_ENDPOINT) return ['Rani'];
   try{
     const res = await fetch(ACTION_LOG_ENDPOINT + '?action=getProjects');
     const data = await res.json();
     if(data.ok && Array.isArray(data.projects) && data.projects.length>0) return data.projects;
   }catch(e){ /* هنرجع الافتراضي تحت */ }
-  return ['gorilla'];
+  return ['Rani'];
 }
 
 (async function initLoginDropdowns(){
@@ -2042,7 +1997,7 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
     state.stores = [];
     state.zones = [];
     const allCodes = [];
-    for(let i=1;i<=44;i++) allCodes.push('TDM'+i);
+    for(let i=1;i<=BASE_REP_COUNT;i++) allCodes.push(BASE_REP_PREFIX+i);
     customReps.forEach(r=>{ if(!allCodes.includes(r.code)) allCodes.push(r.code); });
     for(const code of allCodes){
       const s = await loadStores(code);
@@ -2073,7 +2028,7 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
     : state.repCode;
 
   const showAdminEdit = state.isAdmin;
-  ['btn-import','btn-bulk-zone'].forEach(id => document.getElementById(id).style.display = showAdminEdit ? 'flex' : 'none');
+  ['btn-import','btn-bulk-zone'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = showAdminEdit ? 'flex' : 'none'; });
   document.getElementById('btn-master-update').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-manage-surveys').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-coordinators').style.display = state.isAdmin ? 'flex' : 'none';
@@ -2092,8 +2047,8 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   loadRepNames(); // وأسماء المنسقين كمان في الخلفية
   if(!state.isAdmin) startLiveLocationTracking(); // تتبع مباشر للمندوب وهو ماشي، مش هيحتاج يدوس "موقعي" كل شوية
 
-  const editButtons = ['btn-add-mode','btn-export','btn-zones','btn-backup-import','btn-locate','btn-swap-days'];
-  editButtons.forEach(id => document.getElementById(id).style.display = state.readOnly ? 'none' : 'flex');
+  const editButtons = ['btn-add-mode','btn-export','btn-backup-import','btn-locate'];
+  editButtons.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = state.readOnly ? 'none' : 'flex'; });
 
   initMapOnce();
   renderMarkers();
@@ -2476,7 +2431,8 @@ function setupBulkSelect(){
 
 function setBulkSelectMode(v){
   state.bulkSelectMode = v;
-  document.getElementById('btn-bulk-zone').classList.toggle('active', v);
+  const bulkBtn = document.getElementById('btn-bulk-zone');
+  if(bulkBtn) bulkBtn.classList.toggle('active', v);
   if(v){
     setAddMode(false);
     map.dragging.disable();
@@ -2487,7 +2443,8 @@ function setBulkSelectMode(v){
     hideBulkZonePanel();
   }
 }
-document.getElementById('btn-bulk-zone').addEventListener('click', ()=> setBulkSelectMode(!state.bulkSelectMode));
+const btnBulkZoneEl = document.getElementById('btn-bulk-zone');
+if(btnBulkZoneEl) btnBulkZoneEl.addEventListener('click', ()=> setBulkSelectMode(!state.bulkSelectMode));
 
 function openBulkZonePanel(count){
   const sel = document.getElementById('bulk-zone-select');
@@ -2613,7 +2570,8 @@ async function renderZones(){
   if(!zoneLayer) return;
   const myRenderId = ++zoneRenderToken;
   zoneLayer.clearLayers();
-  if(!document.getElementById('toggle-zones').checked) return;
+  const toggleZonesEl = document.getElementById('toggle-zones');
+  if(!toggleZonesEl || !toggleZonesEl.checked) return;
   for(const zone of state.zones){
     const zoneStores = state.stores.filter(s => s.zoneId === zone.id && (!zone.repCode || s.repCode === zone.repCode));
     if(zoneStores.length===0) continue;
@@ -2645,7 +2603,8 @@ async function renderZones(){
 }
 let zoneRenderToken = 0;
 let dayRouteRenderToken = 0;
-document.getElementById('toggle-zones').addEventListener('change', renderZones);
+const toggleZonesCheckbox = document.getElementById('toggle-zones');
+if(toggleZonesCheckbox) toggleZonesCheckbox.addEventListener('change', renderZones);
 document.getElementById('toggle-all-stores').addEventListener('change', (e)=>{
   if(e.target.checked){ map.addLayer(cluster); }
   else { map.removeLayer(cluster); }
@@ -2762,13 +2721,7 @@ function escapeHtml(s){
 /* ===================== Stats / search ===================== */
 function updateStats(){
   const total = state.stores.length;
-  const problem = state.stores.filter(s=>s.status!=='valid').length;
-  const assigned = state.stores.filter(s=>s.status==='valid' && s.assignment).length;
-  const unassigned = total - problem - assigned;
   document.getElementById('stat-total').textContent = total;
-  document.getElementById('stat-assigned').textContent = assigned;
-  document.getElementById('stat-unassigned').textContent = unassigned;
-  document.getElementById('stat-problem').textContent = problem;
 
   if(state.repCode!=='ALL'){
     const monthly = typeof totalMonthlyVisits === 'function' ? totalMonthlyVisits(null) : 0;
@@ -2847,200 +2800,6 @@ function numberIcon(num, color){
     iconSize:[24,24], iconAnchor:[12,12],
   });
 }
-
-const DAY_NAMES_AR = ['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'];
-const ROUTE_COLORS = ['#0B4F4A','#D6553F','#E2A33B','#5B6FD6','#B15FC4','#2E9E5B','#C97A2B'];
-
-document.getElementById('today-days-grid').innerHTML = DAY_NAMES_AR.map((name,i)=>
-  `<div class="day-pill" data-day="${i}">${name}</div>`).join('');
-
-const todayWeekRow = document.getElementById('today-week-row');
-let selectedScheduleDays = new Set();
-let lastScheduleResult = {}; // dayIndex -> { due, ordered, byRep }
-
-function setupTodayWeekRow(){
-  todayWeekRow.querySelectorAll('.radio-pill').forEach(p=>{
-    p.addEventListener('click', ()=>{
-      todayWeekRow.querySelectorAll('.radio-pill').forEach(x=>x.classList.remove('checked'));
-      p.classList.add('checked');
-      weekSelect.value = p.dataset.val;
-      saveCurrentWeek();
-      renderSelectedSchedule();
-    });
-  });
-}
-setupTodayWeekRow();
-
-document.getElementById('today-days-grid').addEventListener('click', (e)=>{
-  const pill = e.target.closest('.day-pill');
-  if(!pill) return;
-  const day = parseInt(pill.dataset.day,10);
-  if(selectedScheduleDays.has(day)){ selectedScheduleDays.delete(day); pill.classList.remove('checked'); }
-  else { selectedScheduleDays.add(day); pill.classList.add('checked'); }
-  renderSelectedSchedule();
-});
-
-function renderSelectedSchedule(){
-  const week = weekSelect.value;
-  dayRouteLayer.clearLayers();
-  lastScheduleResult = {};
-  const listEl = document.getElementById('today-list');
-  const subEl = document.getElementById('today-sub');
-
-  if(selectedScheduleDays.size===0){
-    listEl.innerHTML = '';
-    subEl.textContent = 'اختار يوم من فوق عشان تشوف المحلات والمسار بتاعه.';
-    return;
-  }
-
-  const days = Array.from(selectedScheduleDays).sort((a,b)=>a-b);
-  subEl.textContent = `الأسبوع ${week}`;
-  let listHtml = '';
-  const allLatLngsForFit = [];
-
-  days.forEach((dayI, colorIdx)=>{
-    const color = ROUTE_COLORS[dayI % ROUTE_COLORS.length];
-    const due = state.stores.filter(s => s.status==='valid' && isDueOnWeek(s.assignment, week) && s.assignment.days.includes(dayI));
-    const dayName = DAY_NAMES_AR[dayI];
-
-    listHtml += `<div style="display:flex;align-items:center;gap:7px;margin-top:10px;">
-      <span class="zone-swatch" style="background:${color};"></span>
-      <span style="font-weight:800;font-size:13px;color:var(--primary-dark);">${dayName} — ${due.length} محل</span>
-    </div>`;
-
-    if(due.length===0){
-      listHtml += `<p class="hint">مفيش محلات متسكنة يوم ${dayName} في الأسبوع ${week}.</p>`;
-      lastScheduleResult[dayI] = {due:[], ordered:[], byRep:null};
-      return;
-    }
-
-    if(state.repCode==='ALL'){
-      const byRep = {};
-      due.forEach(s=>{ (byRep[s.repCode]=byRep[s.repCode]||[]).push(s); });
-      listHtml += Object.entries(byRep).map(([rep,list])=>`
-        <div style="font-weight:700;font-size:12px;color:var(--ink-soft);margin-top:4px;">${rep}</div>
-        ${list.map(s=>`<div class="zone-row"><span style="font-size:12.5px;">${escapeHtml(s.name)} <span class="mono" style="color:var(--ink-soft);">(${escapeHtml(String(s.code))})</span></span></div>`).join('')}
-      `).join('');
-      due.forEach(s=>{
-        L.marker([s.lat,s.lng], {icon: numberIcon('•', color)}).bindPopup(buildPopupHTML(s), {closeButton:true}).addTo(dayRouteLayer);
-        allLatLngsForFit.push([s.lat,s.lng]);
-      });
-      lastScheduleResult[dayI] = {due, ordered:null, byRep};
-    } else {
-      const ordered = nearestNeighborOrder(due);
-      listHtml += ordered.map((s,i)=>`
-        <div class="zone-row">
-          <span class="zone-swatch" style="background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;">${i+1}</span>
-          <span style="font-size:13px;flex:1;">${escapeHtml(s.name)} <span class="mono" style="color:var(--ink-soft);font-size:11.5px;">(${escapeHtml(String(s.code))})</span></span>
-        </div>`).join('');
-      const latlngs = [];
-      ordered.forEach((s,i)=>{
-        L.marker([s.lat,s.lng], {icon: numberIcon(i+1, color)}).bindPopup(buildPopupHTML(s), {closeButton:true}).addTo(dayRouteLayer);
-        latlngs.push([s.lat,s.lng]);
-        allLatLngsForFit.push([s.lat,s.lng]);
-      });
-      const fallbackLine = L.polyline(latlngs, {color, weight:3, dashArray:'6,6', opacity:.85}).addTo(dayRouteLayer);
-      const myToken = ++dayRouteRenderToken;
-      fetchRoadRoute(ordered).then(roadPath=>{
-        if(myToken !== dayRouteRenderToken) return;
-        if(!roadPath) return;
-        dayRouteLayer.removeLayer(fallbackLine);
-        L.polyline(roadPath, {color, weight:3.5, opacity:.85}).addTo(dayRouteLayer);
-      });
-      lastScheduleResult[dayI] = {due, ordered, byRep:null};
-    }
-  });
-
-  listEl.innerHTML = listHtml;
-  if(allLatLngsForFit.length) map.fitBounds(L.polyline(allLatLngsForFit).getBounds(), {padding:[40,40]});
-}
-
-document.getElementById('btn-today').addEventListener('click', ()=>{
-  selectedScheduleDays = new Set();
-  document.querySelectorAll('#today-days-grid .day-pill').forEach(p=>p.classList.remove('checked'));
-  todayWeekRow.querySelectorAll('.radio-pill').forEach(p=>p.classList.toggle('checked', p.dataset.val===weekSelect.value));
-  dayRouteLayer.clearLayers();
-  document.getElementById('today-list').innerHTML = '';
-  document.getElementById('today-sub').textContent = 'اختار يوم من فوق عشان تشوف المحلات والمسار بتاعه.';
-
-  const zoneSel = document.getElementById('today-zone-select');
-  if(state.zones.length===0){
-    zoneSel.innerHTML = `<option value="">مفيش زونات لسه</option>`;
-  } else {
-    zoneSel.innerHTML = state.zones.map(z=>{
-      const label = z.repCode ? `${z.repCode} — ${z.name}` : z.name;
-      return `<option value="${z.id}">${escapeHtml(label)}</option>`;
-    }).join('');
-  }
-
-  document.getElementById('overlay-today').classList.add('show');
-});
-document.getElementById('today-close').addEventListener('click', ()=>{
-  document.getElementById('overlay-today').classList.remove('show');
-});
-document.getElementById('today-clear-route').addEventListener('click', ()=>{
-  selectedScheduleDays = new Set();
-  document.querySelectorAll('#today-days-grid .day-pill').forEach(p=>p.classList.remove('checked'));
-  dayRouteLayer.clearLayers();
-  document.getElementById('today-list').innerHTML = '';
-  document.getElementById('today-sub').textContent = 'اختار يوم من فوق عشان تشوف المحلات والمسار بتاعه.';
-  showToast('اتمسحت كل المسارات من الخريطة');
-});
-
-document.getElementById('btn-zone-route').addEventListener('click', ()=>{
-  const zoneId = document.getElementById('today-zone-select').value;
-  if(!zoneId){ showToast('مفيش زون متاح تختاره'); return; }
-  const zone = state.zones.find(z=>z.id===zoneId);
-  if(!zone) return;
-
-  // switch the panel into "zone route" view: clear day selections first
-  selectedScheduleDays = new Set();
-  document.querySelectorAll('#today-days-grid .day-pill').forEach(p=>p.classList.remove('checked'));
-  dayRouteLayer.clearLayers();
-
-  const zoneStores = state.stores.filter(s => s.zoneId===zone.id && (!zone.repCode || s.repCode===zone.repCode));
-  const listEl = document.getElementById('today-list');
-  const subEl = document.getElementById('today-sub');
-  const label = zone.repCode ? `${zone.repCode} — ${zone.name}` : zone.name;
-
-  if(zoneStores.length===0){
-    subEl.textContent = `الزون "${label}" فاضي من غير محلات.`;
-    listEl.innerHTML = '';
-    return;
-  }
-
-  subEl.textContent = `مسار زون "${label}" — ${zoneStores.length} محل`;
-  const color = zone.color;
-
-  if(state.repCode==='ALL'){
-    const byRep = {};
-    zoneStores.forEach(s=>{ (byRep[s.repCode]=byRep[s.repCode]||[]).push(s); });
-    listEl.innerHTML = Object.entries(byRep).map(([rep,list])=>`
-      <div style="font-weight:700;font-size:12px;color:var(--ink-soft);margin-top:4px;">${rep}</div>
-      ${list.map(s=>`<div class="zone-row"><span style="font-size:12.5px;">${escapeHtml(s.name)} <span class="mono" style="color:var(--ink-soft);">(${escapeHtml(String(s.code))})</span></span></div>`).join('')}
-    `).join('');
-    const pts = [];
-    zoneStores.forEach(s=>{
-      L.marker([s.lat,s.lng], {icon: numberIcon('•', color)}).bindPopup(buildPopupHTML(s), {closeButton:true}).addTo(dayRouteLayer);
-      pts.push([s.lat,s.lng]);
-    });
-    if(pts.length) map.fitBounds(L.polyline(pts).getBounds(), {padding:[40,40]});
-  } else {
-    const ordered = nearestNeighborOrder(zoneStores);
-    listEl.innerHTML = ordered.map((s,i)=>`
-      <div class="zone-row">
-        <span class="zone-swatch" style="background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;">${i+1}</span>
-        <span style="font-size:13px;flex:1;">${escapeHtml(s.name)} <span class="mono" style="color:var(--ink-soft);font-size:11.5px;">(${escapeHtml(String(s.code))})</span></span>
-      </div>`).join('');
-    const latlngs = [];
-    ordered.forEach((s,i)=>{
-      L.marker([s.lat,s.lng], {icon: numberIcon(i+1, color)}).bindPopup(buildPopupHTML(s), {closeButton:true}).addTo(dayRouteLayer);
-      latlngs.push([s.lat,s.lng]);
-    });
-    L.polyline(latlngs, {color, weight:3, dashArray:'6,6', opacity:.85}).addTo(dayRouteLayer);
-    map.fitBounds(L.polyline(latlngs).getBounds(), {padding:[40,40]});
-  }
-});
 
 /* ===================== Coordinate sanity check ===================== */
 const EGYPT_BOUNDS = {minLat:19, maxLat:33, minLng:23, maxLng:38};
@@ -3204,11 +2963,6 @@ window.deleteZone = function(zoneId){
   logAction('حذف زون', '', '', z ? z.name : zoneId);
 };
 
-document.getElementById('btn-zones').addEventListener('click', ()=>{
-  renderZonesList();
-  document.getElementById('route-zone-week').value = weekSelect.value;
-  document.getElementById('overlay-zones').classList.add('show');
-});
 document.getElementById('zones-close').addEventListener('click', ()=>{
   document.getElementById('overlay-zones').classList.remove('show');
 });
@@ -3479,10 +3233,6 @@ function updateSwapDayCounts(){
 swapDayASelect.addEventListener('change', updateSwapDayCounts);
 swapDayBSelect.addEventListener('change', updateSwapDayCounts);
 
-document.getElementById('btn-swap-days').addEventListener('click', ()=>{
-  updateSwapDayCounts();
-  overlaySwapDays.classList.add('show');
-});
 document.getElementById('swap-days-cancel').addEventListener('click', ()=> overlaySwapDays.classList.remove('show'));
 document.getElementById('swap-days-confirm').addEventListener('click', ()=>{
   const dayA = parseInt(swapDayASelect.value,10);
@@ -3522,7 +3272,7 @@ const CODE_TOTAL_REPS = 44;
 const CODE_OVERFLOW_POOL_START = CODE_BASE_START + CODE_TOTAL_REPS * CODE_RANGE_SIZE;
 
 function primaryCodeRangeFor(repCode){
-  const n = parseInt(String(repCode).replace('TDM',''), 10);
+  const n = parseInt(String(repCode).replace(BASE_REP_PREFIX,''), 10);
   if(isNaN(n)) return null;
   const start = CODE_BASE_START + (n-1) * CODE_RANGE_SIZE;
   return { start, end: start + CODE_RANGE_SIZE - 1 };
@@ -3929,7 +3679,7 @@ document.getElementById('btn-full-reset').addEventListener('click', async ()=>{
   overlay.classList.add('show');
 
   const repCodes = [];
-  for(let i=1;i<=44;i++) repCodes.push('TDM'+i);
+  for(let i=1;i<=BASE_REP_COUNT;i++) repCodes.push(BASE_REP_PREFIX+i);
 
   let done = 0;
   for(const rep of repCodes){
@@ -4154,8 +3904,8 @@ document.getElementById('btn-restore-backup').addEventListener('click', async ()
       renderMarkers();
     } else if(state.repCode==='ALL'){
       state.stores = [];
-      for(let i=1;i<=44;i++){
-        const code = 'TDM'+i;
+      for(let i=1;i<=BASE_REP_COUNT;i++){
+        const code = BASE_REP_PREFIX+i;
         const s = await loadStores(code);
         s.forEach(st => state.stores.push(Object.assign({}, st, {repCode: code})));
       }
@@ -4317,8 +4067,8 @@ document.getElementById('master-file-input').addEventListener('change', async (e
 
   if(state.repCode==='ALL'){
     state.stores = [];
-    for(let i=1;i<=44;i++){
-      const code = 'TDM'+i;
+    for(let i=1;i<=BASE_REP_COUNT;i++){
+      const code = BASE_REP_PREFIX+i;
       const s = await loadStores(code);
       s.forEach(st => state.stores.push(Object.assign({}, st, {repCode: code})));
     }
@@ -4398,8 +4148,8 @@ async function runBackupExport(isAuto){
   let filename;
   if(state.repCode==='ALL'){
     const allData = {};
-    for(let i=1;i<=44;i++){
-      const code = 'TDM'+i;
+    for(let i=1;i<=BASE_REP_COUNT;i++){
+      const code = BASE_REP_PREFIX+i;
       allData[code] = { stores: await loadStores(code), zones: await loadZones(code) };
     }
     payload = { type:'ALL_REPS_BACKUP', savedAt: new Date().toISOString(), data: allData };
@@ -4420,7 +4170,8 @@ async function runBackupExport(isAuto){
   URL.revokeObjectURL(url);
   showToast(isAuto ? '📦 اتعملت نسخة احتياطية تلقائية (كل ساعة)' : 'اتحفظت النسخة الاحتياطية — خليها في مكان آمن');
 }
-document.getElementById('btn-backup-export').addEventListener('click', ()=> runBackupExport(false));
+const btnBackupExportEl = document.getElementById('btn-backup-export');
+if(btnBackupExportEl) btnBackupExportEl.addEventListener('click', ()=> runBackupExport(false));
 
 /* نسخة احتياطية تلقائية كل ساعة طول ما التطبيق مفتوح */
 setInterval(()=>{ if(!state.readOnly) runBackupExport(true); }, 60*60*1000);
@@ -4488,7 +4239,8 @@ window.addEventListener('beforeunload', (e)=>{
   return e.returnValue;
 });
 
-document.getElementById('btn-backup-import').addEventListener('click', ()=>{
+const btnBackupImportEl = document.getElementById('btn-backup-import');
+if(btnBackupImportEl) btnBackupImportEl.addEventListener('click', ()=>{
   document.getElementById('backup-import-input').click();
 });
 document.getElementById('backup-import-input').addEventListener('change', async (e)=>{
@@ -4517,8 +4269,8 @@ document.getElementById('backup-import-input').addEventListener('change', async 
       showToast('اترجعت النسخة الشاملة لكل المناديب بنجاح');
       if(state.repCode==='ALL'){
         state.stores = [];
-        for(let i=1;i<=44;i++){
-          const code = 'TDM'+i;
+        for(let i=1;i<=BASE_REP_COUNT;i++){
+          const code = BASE_REP_PREFIX+i;
           const s = await loadStores(code);
           s.forEach(st => state.stores.push(Object.assign({}, st, {repCode: code})));
         }
