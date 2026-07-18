@@ -287,6 +287,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
           <div class="dd-divider" id="dd-admin-divider" style="display:none;"></div>
           <button class="dd-item admin-only" id="btn-import" style="display:none;"><span>⇪</span> استيراد إكسل</button>
           <button class="dd-item admin-only" id="btn-master-update" style="display:none;"><span>⟳</span> تحديث الشيت الرئيسي</button>
+          <button class="dd-item admin-only" id="btn-clients-db" style="display:none;"><span>📇</span> قاعدة بيانات العملاء</button>
           <button class="dd-item admin-only" id="btn-manage-surveys" style="display:none;"><span>📋</span> إدارة الاستبيانات</button>
           <button class="dd-item admin-only" id="btn-coordinators" style="display:none;"><span>👤</span> المنسقين</button>
           <button class="dd-item admin-only" id="btn-reports" style="display:none;"><span>📊</span> التقارير</button>
@@ -362,6 +363,45 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     </div>
   </div>
 </div>
+
+<!-- ============ Admin: Clients Database ============ -->
+<div class="overlay" id="overlay-clients-db">
+  <div class="modal" style="max-width:560px;max-height:88vh;overflow-y:auto;">
+    <h3>قاعدة بيانات العملاء</h3>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input type="text" id="clients-db-search" placeholder="دور بالكود أو الاسم..." style="flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);">
+    </div>
+    <p class="hint" id="clients-db-count" style="margin-top:8px;"></p>
+    <div id="clients-db-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="clients-db-close">قفل</button>
+      <button class="btn-solid" id="btn-import-clients">📥 استيراد من إكسل</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay-client-detail">
+  <div class="modal" style="max-width:480px;max-height:88vh;overflow-y:auto;">
+    <h3 id="client-detail-title">بيانات العميل</h3>
+    <div id="client-detail-body" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;font-size:14px;"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="client-detail-close">رجوع</button>
+      <button class="btn-danger" id="client-detail-delete">🗑️ مسح العميل ده</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay-clients-import">
+  <div class="modal" style="max-width:420px;">
+    <h3>استيراد بيانات العملاء</h3>
+    <p class="hint" id="clients-import-progress">جاري الاستيراد...</p>
+    <div class="modal-actions" id="clients-import-done-actions" style="display:none;">
+      <button class="btn-solid" style="width:100%" onclick="document.getElementById('overlay-clients-import').classList.remove('show')">تمام</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="clients-import-input" accept=".xlsx,.xls" style="display:none;">
 
 <!-- ============ Admin: Surveys list ============ -->
 <div class="overlay" id="overlay-surveys">
@@ -1126,6 +1166,193 @@ async function loadSurveysFromServer(){
 }
 
 /* ---------- أدمن: قايمة الاستبيانات ---------- */
+/* ===================== قاعدة بيانات العملاء (Clients Database) ===================== */
+/* منفصلة تمامًا عن نظام المحلات وخطوط السير — دي مجرد بيانات ملف عملاء (زي CRM بسيط)
+   بتتخزن وتفضل موجودة لحد ما الأدمن يمسحها بنفسه، وبتتحدث بس لما يرفع نفس ملف الإكسل تاني. */
+const CLIENT_FIELDS = [
+  {key:'name', label:'الاسم', cols:['Name','اسم المحل']},
+  {key:'rep1', label:'Representative 1', cols:['Representative__1','Representative 1']},
+  {key:'rep2', label:'Representative 2', cols:['Representative__2','Representative 2']},
+  {key:'teams', label:'Teams', cols:['Teams']},
+  {key:'code', label:'Client Code', cols:['Client Code','كود العميل','كود المحل']},
+  {key:'phone', label:'Phone', cols:['Phone']},
+  {key:'city', label:'City', cols:['City']},
+  {key:'region', label:'Region', cols:['Region']},
+  {key:'country', label:'Country', cols:['Country']},
+  {key:'contactName', label:'Contact Name', cols:['Contact Name']},
+  {key:'contactTitle', label:'Contact Title', cols:['Contact Title']},
+  {key:'lat', label:'Latitude', cols:['Latitude']},
+  {key:'lng', label:'Longitude', cols:['Longitude']},
+  {key:'verified', label:'Verified', cols:['Verified']},
+  {key:'zip', label:'Zip Code', cols:['Zip Code']},
+  {key:'creditLimit', label:'Credit Limit', cols:['Credit Limit']},
+  {key:'profilePic', label:'Profile Pic', cols:['Profile Pic']},
+  {key:'logo', label:'Logo', cols:['Logo']},
+  {key:'website', label:'Website', cols:['Website']},
+  {key:'email', label:'Email', cols:['Email']},
+  {key:'comment', label:'Comment', cols:['Comment']},
+  {key:'geofenceRadius', label:'Geofencing Radius', cols:['Geofencing Radius']},
+  {key:'isChain', label:'Is Chain', cols:['Is Chain']},
+  {key:'channel', label:'Channel', cols:['Channel']},
+  {key:'availabilityMSL', label:'Availability MSL', cols:['Availability MSL']},
+  {key:'priceList', label:'Price List', cols:['Price List']},
+  {key:'media', label:'Media', cols:['Media']},
+  {key:'areaTag1', label:'Area Tag 1', cols:['Area Tag__1','Area Tag 1']},
+  {key:'areaTag2', label:'Area Tag 2', cols:['Area Tag__2','Area Tag 2']},
+  {key:'clientTag1', label:'Client Tag 1', cols:['Client Tag__1','Client Tag 1']},
+  {key:'clientTag2', label:'Client Tag 2', cols:['Client Tag__2','Client Tag 2']},
+  {key:'clientTag3', label:'Client Tag 3', cols:['Client Tag__3','Client Tag 3']},
+  {key:'products1', label:'Products 1', cols:['Products__1','Products 1']},
+  {key:'products2', label:'Products 2', cols:['Products__2','Products 2']},
+  {key:'paymentTerm', label:'Payment Term', cols:['Payment Term']},
+  {key:'paymentType', label:'Payment Type', cols:['Payment Type']},
+];
+
+let clientsDB = []; // مصفوفة كل العملاء، كل عنصر فيه كل الحقول اللي فوق
+async function loadClientsDB(){
+  try{
+    const res = await window.storage.get(pk('clients_db'), true);
+    const list = res && res.value ? JSON.parse(res.value) : [];
+    clientsDB = Array.isArray(list) ? list : [];
+  }catch(e){ clientsDB = []; }
+}
+async function saveClientsDB(){
+  try{ await window.storage.set(pk('clients_db'), JSON.stringify(clientsDB), true); }
+  catch(e){ showToast('حصلت مشكلة في حفظ قاعدة بيانات العملاء'); }
+}
+
+document.getElementById('btn-clients-db').addEventListener('click', async ()=>{
+  document.getElementById('overlay-clients-db').classList.add('show');
+  document.getElementById('clients-db-list').innerHTML = '<p class="hint">بيتحمل...</p>';
+  await loadClientsDB();
+  renderClientsDBList();
+});
+document.getElementById('clients-db-close').addEventListener('click', ()=>{
+  document.getElementById('overlay-clients-db').classList.remove('show');
+});
+document.getElementById('clients-db-search').addEventListener('input', ()=> renderClientsDBList());
+
+function renderClientsDBList(){
+  const q = document.getElementById('clients-db-search').value.trim().toLowerCase();
+  const filtered = !q ? clientsDB : clientsDB.filter(c =>
+    String(c.code||'').toLowerCase().includes(q) || String(c.name||'').toLowerCase().includes(q)
+  );
+  document.getElementById('clients-db-count').textContent = `إجمالي العملاء: ${clientsDB.length}` + (q ? ` — ظاهر: ${filtered.length}` : '');
+  const box = document.getElementById('clients-db-list');
+  if(filtered.length===0){
+    box.innerHTML = '<p class="hint">مفيش عملاء لسه. دوس "استيراد من إكسل" عشان تضيفهم.</p>';
+    return;
+  }
+  box.innerHTML = filtered.map((c, idx)=>`
+    <button class="pop-btn primary" style="width:100%;display:flex;justify-content:space-between;align-items:center;text-align:right;" onclick="openClientDetail('${escapeHtml(c.code)}')">
+      <span>${escapeHtml(c.name||'(من غير اسم)')}</span>
+      <span style="opacity:.65;font-size:12px;" class="mono">${escapeHtml(c.code||'')}</span>
+    </button>
+  `).join('');
+}
+
+window.openClientDetail = function(code){
+  const client = clientsDB.find(c=>String(c.code)===String(code));
+  if(!client) return;
+  document.getElementById('overlay-clients-db').classList.remove('show');
+  document.getElementById('client-detail-title').textContent = client.name || client.code;
+  document.getElementById('client-detail-body').innerHTML = CLIENT_FIELDS
+    .filter(f => client[f.key] != null && String(client[f.key]).trim() !== '')
+    .map(f => `<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding-bottom:6px;">
+      <span style="color:var(--ink-soft);">${escapeHtml(f.label)}</span>
+      <span style="font-weight:600;text-align:left;word-break:break-word;">${escapeHtml(String(client[f.key]))}</span>
+    </div>`).join('');
+  document.getElementById('overlay-client-detail').dataset.currentCode = code;
+  document.getElementById('overlay-client-detail').classList.add('show');
+};
+document.getElementById('client-detail-close').addEventListener('click', ()=>{
+  document.getElementById('overlay-client-detail').classList.remove('show');
+  document.getElementById('overlay-clients-db').classList.add('show');
+  renderClientsDBList();
+});
+document.getElementById('client-detail-delete').addEventListener('click', async ()=>{
+  const code = document.getElementById('overlay-client-detail').dataset.currentCode;
+  if(!confirm('متأكد عايز تمسح العميل ده من القاعدة نهائيًا؟')) return;
+  clientsDB = clientsDB.filter(c=>String(c.code)!==String(code));
+  await saveClientsDB();
+  showToast('اتمسح العميل');
+  document.getElementById('overlay-client-detail').classList.remove('show');
+  document.getElementById('overlay-clients-db').classList.add('show');
+  renderClientsDBList();
+});
+
+document.getElementById('btn-import-clients').addEventListener('click', ()=>{
+  document.getElementById('clients-import-input').click();
+});
+document.getElementById('clients-import-input').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value = '';
+
+  document.getElementById('overlay-clients-db').classList.remove('show');
+  const overlay = document.getElementById('overlay-clients-import');
+  const progress = document.getElementById('clients-import-progress');
+  const doneActions = document.getElementById('clients-import-done-actions');
+  doneActions.style.display = 'none';
+  progress.textContent = 'بيتقرا الملف...';
+  overlay.classList.add('show');
+
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array'});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
+    if(!rows || rows.length < 2){
+      progress.textContent = 'الملف فاضي أو مش مظبوط.';
+      doneActions.style.display = 'flex';
+      return;
+    }
+    const headerRow = rows[0];
+    const colIdx = {};
+    CLIENT_FIELDS.forEach(f => { colIdx[f.key] = findCol(headerRow, f.cols); });
+
+    if(colIdx.code === -1 || colIdx.name === -1){
+      progress.textContent = '⛔ الملف لازم يحتوي على الأقل عمودي "Name" و"Client Code".';
+      doneActions.style.display = 'flex';
+      return;
+    }
+
+    await loadClientsDB();
+    let added = 0, updated = 0, skipped = 0;
+    for(let r=1; r<rows.length; r++){
+      const row = rows[r];
+      if(!row) continue;
+      const code = colIdx.code!==-1 ? String(row[colIdx.code]||'').trim() : '';
+      const name = colIdx.name!==-1 ? String(row[colIdx.name]||'').trim() : '';
+      if(!code || !name){ skipped++; continue; }
+
+      const clientObj = {};
+      CLIENT_FIELDS.forEach(f=>{
+        if(colIdx[f.key]!==-1 && row[colIdx[f.key]]!=null && String(row[colIdx[f.key]]).trim()!==''){
+          clientObj[f.key] = row[colIdx[f.key]];
+        }
+      });
+      clientObj.code = code;
+      clientObj.name = name;
+
+      const existingIdx = clientsDB.findIndex(c=>String(c.code)===code);
+      if(existingIdx !== -1){
+        clientsDB[existingIdx] = Object.assign({}, clientsDB[existingIdx], clientObj);
+        updated++;
+      } else {
+        clientsDB.push(clientObj);
+        added++;
+      }
+    }
+    await saveClientsDB();
+    progress.textContent = `تم الاستيراد ✓ — ${added} عميل جديد، ${updated} تحديث لعميل موجود` + (skipped>0 ? `، ${skipped} صف اتجاهل (ناقص كود أو اسم)` : '');
+    doneActions.style.display = 'flex';
+  }catch(err){
+    progress.textContent = 'حصلت مشكلة في قراءة الملف، تأكد إنه إكسل صحيح وجرب تاني.';
+    doneActions.style.display = 'flex';
+  }
+});
+
 document.getElementById('btn-manage-surveys').addEventListener('click', async ()=>{
   document.getElementById('overlay-surveys').classList.add('show');
   document.getElementById('surveys-list').innerHTML = '<p class="hint">بيتحمل...</p>';
@@ -2030,6 +2257,7 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   const showAdminEdit = state.isAdmin;
   ['btn-import','btn-bulk-zone'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = showAdminEdit ? 'flex' : 'none'; });
   document.getElementById('btn-master-update').style.display = state.isAdmin ? 'flex' : 'none';
+  document.getElementById('btn-clients-db').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-manage-surveys').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-coordinators').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-reports').style.display = state.isAdmin ? 'flex' : 'none';
