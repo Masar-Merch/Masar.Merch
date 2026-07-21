@@ -382,6 +382,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     <h3>المنسقين</h3>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
       <button class="dd-item admin-only" id="btn-coordinators" style="display:flex;"><span>👤</span> قايمة المنسقين</button>
+      <button class="dd-item admin-only" id="btn-live-tracker" style="display:flex;"><span>🛰️</span> التتبع اللحظي</button>
       <button class="dd-item admin-only" id="btn-add-rep" style="display:flex;"><span>➕</span> إضافة منسق جديد</button>
       <button class="dd-item admin-only" id="btn-bulk-add-reps" style="display:flex;"><span>📥</span> رفع منسقين بالإكسل</button>
       <button class="dd-item admin-only" id="btn-delete-rep" style="display:flex;color:var(--red);"><span>🚫</span> حذف منسق بالكامل</button>
@@ -492,6 +493,19 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
       <button class="btn-ghost" id="survey-fill-cancel">إلغاء</button>
       <button class="btn-solid" id="survey-fill-submit">إرسال الاستبيان</button>
     </div>
+  </div>
+</div>
+
+<!-- ============ التتبع اللحظي: صفحة كاملة ============ -->
+<div class="fullpage" id="overlay-live-tracker">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="live-tracker-close">‹</button>
+    <h3>التتبع اللحظي</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div id="live-tracker-map" style="flex:1;"></div>
+  <div class="fullpage-footer">
+    <p class="hint" id="live-tracker-status" style="text-align:center;margin:0;">بيتحمّل...</p>
   </div>
 </div>
 
@@ -1405,6 +1419,75 @@ document.getElementById('btn-open-data-menu').addEventListener('click', ()=>{
 });
 document.getElementById('data-menu-close').addEventListener('click', ()=>{
   document.getElementById('overlay-data-menu').classList.remove('show');
+});
+
+/* ---------- التتبع اللحظي (Live Tracker) ---------- */
+let liveTrackerMap = null;
+let liveTrackerMarkers = {}; // repCode -> L.marker
+let liveTrackerInterval = null;
+
+async function fetchAndRenderLiveLocations(){
+  const statusEl = document.getElementById('live-tracker-status');
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT + '?action=getLiveLocations&project=' + encodeURIComponent(currentProject));
+    const data = await res.json();
+    if(!data.ok || !Array.isArray(data.locations)){
+      statusEl.textContent = 'مافيش بيانات تتبع لسه.';
+      return;
+    }
+    const now = Date.now();
+    let onlineCount = 0;
+    data.locations.forEach(loc=>{
+      if(loc.lat==null || loc.lng==null) return;
+      const updatedAt = loc.updatedAt ? new Date(loc.updatedAt).getTime() : 0;
+      const isOnline = (now - updatedAt) < 90000; // آخر تحديث خلال آخر دقيقة ونص = تعتبر "أونلاين"
+      if(isOnline) onlineCount++;
+      const label = (loc.name || loc.repCode) + (isOnline ? '' : ' (آخر ظهور: '+timeAgoArabic(updatedAt)+')');
+      const color = isOnline ? '#2E9E5B' : '#9AA5B1';
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="background:${color};color:#fff;border:3px solid #fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.3);">${escapeHtml(String(loc.repCode).replace(BASE_REP_PREFIX,''))}</div>`,
+        iconSize:[34,34], iconAnchor:[17,17],
+      });
+      if(liveTrackerMarkers[loc.repCode]){
+        liveTrackerMarkers[loc.repCode].setLatLng([loc.lat, loc.lng]);
+        liveTrackerMarkers[loc.repCode].setIcon(icon);
+        liveTrackerMarkers[loc.repCode].setTooltipContent(label);
+      } else {
+        liveTrackerMarkers[loc.repCode] = L.marker([loc.lat, loc.lng], {icon})
+          .bindTooltip(label, {permanent:false, direction:'top'})
+          .addTo(liveTrackerMap);
+      }
+    });
+    statusEl.textContent = `${data.locations.length} منسق ليهم موقع مسجل — ${onlineCount} أونلاين دلوقتي (بيتحدّث كل 15 ثانية)`;
+  }catch(e){
+    statusEl.textContent = 'حصلت مشكلة في تحميل المواقع، هيحاول تاني.';
+  }
+}
+function timeAgoArabic(ts){
+  if(!ts) return 'مش معروف';
+  const diffMin = Math.round((Date.now()-ts)/60000);
+  if(diffMin < 1) return 'دلوقتي';
+  if(diffMin < 60) return `من ${diffMin} دقيقة`;
+  const diffH = Math.round(diffMin/60);
+  return `من ${diffH} ساعة`;
+}
+
+document.getElementById('btn-live-tracker').addEventListener('click', ()=>{
+  document.getElementById('overlay-coordinators-menu').classList.remove('show');
+  document.getElementById('overlay-live-tracker').classList.add('show');
+  if(!liveTrackerMap){
+    liveTrackerMap = L.map('live-tracker-map').setView([30.06,31.24], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(liveTrackerMap);
+  }
+  setTimeout(()=> liveTrackerMap.invalidateSize(), 100);
+  fetchAndRenderLiveLocations();
+  if(liveTrackerInterval) clearInterval(liveTrackerInterval);
+  liveTrackerInterval = setInterval(fetchAndRenderLiveLocations, 15000);
+});
+document.getElementById('live-tracker-close').addEventListener('click', ()=>{
+  document.getElementById('overlay-live-tracker').classList.remove('show');
+  if(liveTrackerInterval){ clearInterval(liveTrackerInterval); liveTrackerInterval = null; }
 });
 
 document.getElementById('btn-manage-surveys').addEventListener('click', async ()=>{
@@ -2427,6 +2510,7 @@ function initMapOnce(){
 /* ===================== My location + directions ===================== */
 let watchPositionId = null;
 let lastLocationUpdateTime = 0;
+let lastServerPingTime = 0;
 
 /* تتبّع مباشر: بيحدّث موقع المنسق أوتوماتيك وهو ماشي، من غير ما يحتاج يدوس "موقعي" كل شوية */
 function startLiveLocationTracking(){
@@ -2437,6 +2521,7 @@ function startLiveLocationTracking(){
       myLocation = {lat: pos.coords.latitude, lng: pos.coords.longitude, approximate:false};
       lastLocationUpdateTime = Date.now();
       drawMyLocation(pos.coords.accuracy);
+      pingLocationToServer();
     },
     (err)=>{
       console.warn('live tracking error', err.code, err.message);
@@ -2452,6 +2537,22 @@ function stopLiveLocationTracking(){
     navigator.geolocation.clearWatch(watchPositionId);
     watchPositionId = null;
   }
+}
+/* بنبعت للسيرفر مرة كل 20 ثانية بالكتير (مش كل تحديث GPS)، عشان الأدمن يقدر يشوف كل المنسقين لايف من "التتبع اللحظي" */
+function pingLocationToServer(){
+  if(state.isAdmin || !myLocation || !ACTION_LOG_ENDPOINT) return;
+  const now = Date.now();
+  if(now - lastServerPingTime < 20000) return;
+  lastServerPingTime = now;
+  fetch(ACTION_LOG_ENDPOINT, {
+    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({
+      kind:'pingLocation', project: currentProject,
+      repCode: state.repCode,
+      coordinatorName: repNamesMap[state.repCode] || '',
+      lat: myLocation.lat, lng: myLocation.lng,
+    }),
+  }).catch(()=>{});
 }
 /* الجي بي إس بيتعتبر "شغال فعليًا" لو وصلنا تحديث حقيقي (مش تقريبي) في آخر 20 ثانية */
 function isGpsLive(){
