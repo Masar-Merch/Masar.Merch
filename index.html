@@ -182,6 +182,14 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
 
 /* ---------- Modal ---------- */
 .overlay{position:fixed;inset:0;background:rgba(9,20,18,.5);display:none;align-items:center;justify-content:center;z-index:3000;padding:16px;}
+
+.fullpage{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:3500;}
+.fullpage.show{display:flex;}
+.fullpage-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;background:var(--panel);border-bottom:1.5px solid var(--line);flex:none;}
+.fullpage-header h3{margin:0;font-size:17px;color:var(--ink);flex:1;text-align:center;}
+.fullpage-back{width:36px;height:36px;border-radius:50%;border:none;background:var(--primary-tint);color:var(--primary-dark);font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.fullpage-body{flex:1;overflow-y:auto;padding:18px 16px 24px;}
+.fullpage-footer{flex:none;padding:14px 16px;background:var(--panel);border-top:1.5px solid var(--line);}
 .overlay.show{display:flex;}
 .modal{background:var(--panel);border-radius:18px;padding:26px 24px;width:100%;max-width:420px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow);}
 .modal h3{margin:0 0 4px;font-size:18px;color:var(--primary-dark);}
@@ -286,18 +294,11 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
           <button class="dd-item" id="btn-export"><span>⇩</span> تصدير إكسل</button>
           <div class="dd-divider" id="dd-admin-divider" style="display:none;"></div>
           <button class="dd-item admin-only" id="btn-import" style="display:none;"><span>⇪</span> استيراد إكسل</button>
-          <button class="dd-item admin-only" id="btn-master-update" style="display:none;"><span>⟳</span> تحديث الشيت الرئيسي</button>
-          <button class="dd-item admin-only" id="btn-clients-db" style="display:none;"><span>📇</span> قاعدة بيانات العملاء</button>
           <button class="dd-item admin-only" id="btn-manage-surveys" style="display:none;"><span>📋</span> إدارة الاستبيانات</button>
-          <button class="dd-item admin-only" id="btn-coordinators" style="display:none;"><span>👤</span> المنسقين</button>
           <button class="dd-item admin-only" id="btn-reports" style="display:none;"><span>📊</span> التقارير</button>
           <button class="dd-item admin-only" id="btn-create-project" style="display:none;"><span>🗂️</span> إنشاء مشروع جديد</button>
-          <button class="dd-item admin-only" id="btn-full-reset" style="display:none;color:var(--red);"><span>🗑️</span> تصفية كاملة (كل المناديب)</button>
-          <button class="dd-item admin-only" id="btn-reset-sheets" style="display:none;color:var(--red);"><span>🗑️</span> تصفية شيتات جوجل شيت (السجلات)</button>
-          <button class="dd-item admin-only" id="btn-add-rep" style="display:none;"><span>➕</span> إضافة مندوب جديد</button>
-          <button class="dd-item admin-only" id="btn-bulk-add-reps" style="display:none;"><span>📥</span> رفع مناديب بالإكسل (Bulk)</button>
-          <button class="dd-item admin-only" id="btn-delete-rep" style="display:none;color:var(--red);"><span>🚫</span> حذف مندوب بالكامل</button>
-          <button class="dd-item admin-only" id="btn-reenable-rep" style="display:none;"><span>✅</span> تفعيل مندوب معطّل</button>
+          <button class="dd-item admin-only" id="btn-open-coordinators-menu" style="display:none;"><span>👤</span> المنسقين ›</button>
+          <button class="dd-item admin-only" id="btn-open-data-menu" style="display:none;color:var(--red);"><span>🗄️</span> البيانات والتصفية ›</button>
           <div class="dd-divider"></div>
           <button class="dd-item" id="btn-logout"><span>⏻</span> خروج</button>
         </div>
@@ -312,7 +313,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
       <input type="checkbox" id="toggle-all-stores" style="margin:0;">
       إظهار كل المحلات
     </label>
-    <label class="chip" style="gap:5px;">
+    <label class="chip" style="gap:5px;display:none;">
       الأسبوع الحالي:
       <select id="current-week-select" style="border:none;background:transparent;font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:12.5px;">
         <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
@@ -337,16 +338,27 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
 <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none;">
 <input type="file" id="master-file-input" accept=".xlsx,.xls" style="display:none;">
 <input type="file" id="bulk-reps-file-input" accept=".xlsx,.xls" style="display:none;">
-<input type="file" id="backup-import-input" accept=".json" style="display:none;">
 
 <!-- ============ Master Update Progress ============ -->
+<div class="overlay" id="overlay-rep-mapping">
+  <div class="modal" style="max-width:460px;max-height:88vh;overflow-y:auto;">
+    <h3>اربط أسماء المنسقين في الملف بيوزرات النظام</h3>
+    <p class="hint">الملف اللي رفعته فيه أسماء منسقين (مش أكواد يوزر)، محتاج تحدد كل اسم يتسجل تحت أي يوزر فعلي عندنا، غير كده البيانات هتتحفظ بس مش هتظهر لحد.</p>
+    <div id="rep-mapping-list" style="display:flex;flex-direction:column;gap:10px;margin-top:14px;"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="rep-mapping-cancel">إلغاء</button>
+      <button class="btn-solid" id="rep-mapping-confirm">تأكيد واستيراد</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlay-master">
   <div class="modal">
     <h3>تحديث الشيت الرئيسي</h3>
-    <p class="m-sub" id="master-sub">بتم قراءة الملف وتوزيعه على كل مندوب...</p>
+    <p class="m-sub" id="master-sub">بتم قراءة الملف وتوزيعه على كل منسق...</p>
     <p class="hint" style="margin-top:14px;">
-      البيانات الحالية لكل مندوب مش هتتمسح؛ هيتم فقط تحديث المحلات الموجودة في الملف الجديد (نفس الكود) وإضافة أي محل جديد. أي محل عندك في الأبليكيشن مش موجود في الملف (زي محل بديل ضفته إنت أو محل اتعمله تغيير حالة) هيفضل زي ما هو من غير ما يتمسح.
-      <br><br>هيتعمل نسخة احتياطية تلقائي لكل مندوب قبل التحديث، تقدر ترجعلها من تحت لو حصل خطأ في الملف.
+      البيانات الحالية لكل منسق مش هتتمسح؛ هيتم فقط تحديث المحلات الموجودة في الملف الجديد (نفس الكود) وإضافة أي محل جديد. أي محل عندك في الأبليكيشن مش موجود في الملف (زي محل بديل ضفته إنت أو محل اتعمله تغيير حالة) هيفضل زي ما هو من غير ما يتمسح.
+      <br><br>هيتعمل نسخة احتياطية تلقائي لكل منسق قبل التحديث، تقدر ترجعلها من تحت لو حصل خطأ في الملف.
     </p>
     <div id="master-progress" style="margin-top:14px;font-size:13px;color:var(--ink-soft);"></div>
     <div class="modal-actions" id="master-done-actions" style="display:none;">
@@ -354,7 +366,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     </div>
 
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
-      <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;">استرجاع نسخة احتياطية لمندوب معين</label>
+      <label style="display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;">استرجاع نسخة احتياطية لمنسق معين</label>
       <div style="display:flex;gap:8px;">
         <select id="restore-rep-select" style="flex:1;padding:9px;border-radius:9px;border:1.5px solid var(--line);"></select>
         <button class="btn-danger" id="btn-restore-backup" style="flex:none;padding:9px 16px;">استرجاع</button>
@@ -365,6 +377,33 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
 </div>
 
 <!-- ============ Admin: Clients Database ============ -->
+<div class="overlay" id="overlay-coordinators-menu">
+  <div class="modal" style="max-width:400px;">
+    <h3>المنسقين</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+      <button class="dd-item admin-only" id="btn-coordinators" style="display:flex;"><span>👤</span> قايمة المنسقين</button>
+      <button class="dd-item admin-only" id="btn-add-rep" style="display:flex;"><span>➕</span> إضافة منسق جديد</button>
+      <button class="dd-item admin-only" id="btn-bulk-add-reps" style="display:flex;"><span>📥</span> رفع منسقين بالإكسل</button>
+      <button class="dd-item admin-only" id="btn-delete-rep" style="display:flex;color:var(--red);"><span>🚫</span> حذف منسق بالكامل</button>
+      <button class="dd-item admin-only" id="btn-reenable-rep" style="display:flex;"><span>✅</span> تفعيل منسق معطّل</button>
+    </div>
+    <div class="modal-actions"><button class="btn-ghost" id="coordinators-menu-close" style="width:100%;">رجوع</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay-data-menu">
+  <div class="modal" style="max-width:400px;">
+    <h3>البيانات والتصفية</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+      <button class="dd-item admin-only" id="btn-master-update" style="display:flex;"><span>⟳</span> تحديث الشيت الرئيسي</button>
+      <button class="dd-item admin-only" id="btn-clients-db" style="display:flex;"><span>📇</span> قاعدة بيانات العملاء</button>
+      <button class="dd-item admin-only" id="btn-full-reset" style="display:flex;color:var(--red);"><span>🗑️</span> تصفية كاملة (كل المنسقين)</button>
+      <button class="dd-item admin-only" id="btn-reset-sheets" style="display:flex;color:var(--red);"><span>🗑️</span> تصفية شيتات جوجل شيت</button>
+    </div>
+    <div class="modal-actions"><button class="btn-ghost" id="data-menu-close" style="width:100%;">رجوع</button></div>
+  </div>
+</div>
+
 <div class="overlay" id="overlay-clients-db">
   <div class="modal" style="max-width:560px;max-height:88vh;overflow-y:auto;">
     <h3>قاعدة بيانات العملاء</h3>
@@ -407,7 +446,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
 <div class="overlay" id="overlay-surveys">
   <div class="modal" style="max-width:520px;">
     <h3>إدارة الاستبيانات</h3>
-    <p class="hint">الاستبيانات دي بتظهر لكل المناديب لما يفتحوا أي محل، وممكن المندوب يملا نفس الاستبيان أكتر من مرة.</p>
+    <p class="hint">الاستبيانات دي بتظهر لكل المنسقين لما يفتحوا أي محل، وممكن المنسق يملا نفس الاستبيان أكتر من مرة.</p>
     <div id="surveys-list" style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"></div>
     <div class="modal-actions">
       <button class="btn-ghost" id="surveys-close">قفل</button>
@@ -456,16 +495,20 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   </div>
 </div>
 
-<!-- ============ زيارة محل ============ -->
-<div class="overlay" id="overlay-visit">
-  <div class="modal" style="max-width:460px;">
+<!-- ============ زيارة محل: صفحة كاملة ============ -->
+<div class="fullpage" id="overlay-visit">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="visit-cancel">‹</button>
     <h3 id="visit-title">الزيارة</h3>
-    <p class="hint" id="visit-sub">الزيارة بدأت — اختار أي قسم تملاه، بأي ترتيب.</p>
-    <div id="visit-sections-list" style="display:flex;flex-direction:column;gap:10px;margin-top:14px;"></div>
-    <div class="modal-actions" style="margin-top:18px;">
-      <button class="btn-ghost" id="visit-cancel">قفل من غير إنهاء</button>
-      <button class="btn-solid" id="visit-finish" style="background:var(--green);border-color:var(--green);">✅ إنهاء الزيارة</button>
-    </div>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div id="visit-timer" style="text-align:center;font-size:42px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:var(--primary-dark);margin:10px 0 6px;">00:00:00</div>
+    <p class="hint" id="visit-sub" style="text-align:center;">اختار أي قسم تملاه، بأي ترتيب.</p>
+    <div id="visit-sections-list" style="display:flex;flex-direction:column;gap:12px;margin-top:18px;max-width:520px;margin-left:auto;margin-right:auto;"></div>
+  </div>
+  <div class="fullpage-footer">
+    <button class="btn-solid" id="visit-finish" style="width:100%;background:var(--green);border-color:var(--green);font-size:16px;padding:14px;">✅ إنهاء الزيارة</button>
   </div>
 </div>
 
@@ -591,11 +634,9 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
 <div class="overlay" id="overlay-exit-confirm">
   <div class="modal">
     <h3>⚠️ متأكد إنك عاوز تخرج؟</h3>
-    <p class="m-sub">تأكد إنك عملت نسخة احتياطية قبل ما تخرج، عشان لو حصل أي مشكلة يكون عندك نسخة من بياناتك.</p>
-    <button class="btn-solid" id="exit-backup-now" style="width:100%;margin-top:6px;background:var(--primary-dark, #1a56b3);">📦 تصدير نسخة احتياطية الآن</button>
     <div class="modal-actions" style="margin-top:16px;">
       <button class="btn-ghost" id="exit-cancel">لأ، رجوع</button>
-      <button class="btn-solid" id="exit-confirm" disabled style="opacity:.5;">استنى... (<span id="exit-countdown">5</span>)</button>
+      <button class="btn-solid" id="exit-confirm">أيوة، خروج</button>
     </div>
   </div>
 </div>
@@ -901,10 +942,10 @@ function findNearestScheduledDay(lat, lng, storesOverride){
   return null;
 }
 
-/* ===================== حصرية النطاق بين المناديب ===================== */
-/* أي محل جديد لازم يكون جوه نطاق المندوب بتاعه هو، مش برة في نطاق مندوب تاني، ومش برة
+/* ===================== حصرية النطاق بين المنسقين ===================== */
+/* أي محل جديد لازم يكون جوه نطاق المنسق بتاعه هو، مش برة في نطاق منسق تاني، ومش برة
    كل مناطق الإضافة المسجلة خالص. بنحسبها بأقرب محل فعلي حقيقي (مش حدود تقريبية). */
-const ALL_ZONES_MAX_DISTANCE_M = 6000; // لو أبعد من كده عن أي مندوب خالص، يبقى برة كل مناطق الإضافة
+const ALL_ZONES_MAX_DISTANCE_M = 6000; // لو أبعد من كده عن أي منسق خالص، يبقى برة كل مناطق الإضافة
 
 function territoryConflictMessage(conflict){
   if(conflict.type === 'outside_all'){
@@ -1012,7 +1053,7 @@ async function loadStores(repCode){
 const ACTION_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzBj2IyWQEYhGCFYdQ3gaEU9F3SfKu8ObaBEPgHuTwpfM0PrjV3-zq8vT7ujeEbbaLthA/exec';
 
 /* ===================== المشاريع (Multi-Project) ===================== */
-// كل مشروع منفصل تمامًا: مناديب مختلفة، بيانات مختلفة، شيت جوجل شيت ودرايف منفصلين.
+// كل مشروع منفصل تمامًا: منسقين مختلفة، بيانات مختلفة، شيت جوجل شيت ودرايف منفصلين.
 // المشروع الحالي بيتحدد من ليستة صفحة تسجيل الدخول، وكل مفاتيح التخزين المحلي (window.storage) بتتحط جوه namespace بتاعه.
 let currentProject = localStorage.getItem('masar_last_project') || 'Rani';
 function pk(key){ return currentProject + '::' + key; }
@@ -1074,7 +1115,7 @@ function logAction(actionType, storeCode, storeName, details, store, newStoreDet
       method: 'POST',
       headers: {'Content-Type': 'text/plain;charset=utf-8'}, // كده عشان نتفادى مشكلة CORS preflight مع Google Apps Script
       body: JSON.stringify(payload),
-    }).catch(()=>{}); // فشل التسجيل مايوقفش شغل المندوب أبدًا، بس تسجيل خلفي صامت
+    }).catch(()=>{}); // فشل التسجيل مايوقفش شغل المنسق أبدًا، بس تسجيل خلفي صامت
   }catch(e){ /* تجاهل، التسجيل مش لازم يعطل حاجة */ }
 }
 
@@ -1351,6 +1392,19 @@ document.getElementById('clients-import-input').addEventListener('change', async
     progress.textContent = 'حصلت مشكلة في قراءة الملف، تأكد إنه إكسل صحيح وجرب تاني.';
     doneActions.style.display = 'flex';
   }
+});
+
+document.getElementById('btn-open-coordinators-menu').addEventListener('click', ()=>{
+  document.getElementById('overlay-coordinators-menu').classList.add('show');
+});
+document.getElementById('coordinators-menu-close').addEventListener('click', ()=>{
+  document.getElementById('overlay-coordinators-menu').classList.remove('show');
+});
+document.getElementById('btn-open-data-menu').addEventListener('click', ()=>{
+  document.getElementById('overlay-data-menu').classList.add('show');
+});
+document.getElementById('data-menu-close').addEventListener('click', ()=>{
+  document.getElementById('overlay-data-menu').classList.remove('show');
 });
 
 document.getElementById('btn-manage-surveys').addEventListener('click', async ()=>{
@@ -1682,9 +1736,49 @@ function distanceToStoreMeters(store){
   return haversineMeters(myLocation.lat, myLocation.lng, store.lat, store.lng);
 }
 
+let activeVisit = null; // {storeId, visitId, startTime, storeName, storeCode} — الزيارة الشغالة دلوقتي، لو موجودة مينفعش تتفتح زيارة تانية غيرها
+let visitTimerInterval = null;
+function formatElapsedHMS(ms){
+  const totalSec = Math.max(0, Math.floor(ms/1000));
+  const h = Math.floor(totalSec/3600);
+  const m = Math.floor((totalSec%3600)/60);
+  const s = totalSec%60;
+  const pad = n => String(n).padStart(2,'0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+function startVisitTimerDisplay(){
+  if(visitTimerInterval) clearInterval(visitTimerInterval);
+  const tick = ()=>{
+    if(!activeVisit) return;
+    const el = document.getElementById('visit-timer');
+    if(el) el.textContent = formatElapsedHMS(Date.now() - activeVisit.startTime);
+  };
+  tick();
+  visitTimerInterval = setInterval(tick, 1000);
+}
+function stopVisitTimerDisplay(){
+  if(visitTimerInterval){ clearInterval(visitTimerInterval); visitTimerInterval = null; }
+}
+
 window.startVisitFlow = function(storeId){
   const store = state.stores.find(s=>s.id===storeId);
   if(!store) return;
+
+  if(activeVisit && activeVisit.storeId !== storeId){
+    showToast(`⛔ عندك زيارة شغالة في "${activeVisit.storeName}"، لازم تقفلها (تدوس إنهاء الزيارة) قبل ما تفتح زيارة تانية`, true);
+    return;
+  }
+  if(activeVisit && activeVisit.storeId === storeId){
+    // نفس الزيارة الشغالة، بس بنرجعلها قدام المنسق تاني من غير ما نبدأ واحدة جديدة
+    map.closePopup();
+    state.surveyFillStoreId = storeId;
+    document.getElementById('visit-title').textContent = 'زيارة: ' + store.name;
+    renderVisitSections();
+    document.getElementById('overlay-visit').classList.add('show');
+    startVisitTimerDisplay();
+    return;
+  }
+
   if(!isGpsLive()){
     showToast('⛔ لازم تفتح خدمة الموقع (GPS) على الموبايل عشان تقدر تبدأ الزيارة', true);
     startLiveLocationTracking();
@@ -1698,9 +1792,11 @@ window.startVisitFlow = function(storeId){
   map.closePopup();
   state.surveyFillStoreId = storeId;
   state.currentVisitId = 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  activeVisit = { storeId, visitId: state.currentVisitId, startTime: Date.now(), storeName: store.name, storeCode: store.code };
   document.getElementById('visit-title').textContent = 'زيارة: ' + store.name;
   renderVisitSections();
   document.getElementById('overlay-visit').classList.add('show');
+  startVisitTimerDisplay();
 
   fetch(ACTION_LOG_ENDPOINT, {
     method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -1738,7 +1834,9 @@ window.openVisitSection = function(sectionId){
 };
 
 document.getElementById('visit-cancel').addEventListener('click', ()=>{
+  // بيقفل الشاشة بس من غير ما ينهي الزيارة — الزيارة تفضل شغالة (العداد بيكمل من نفس وقت البداية لو رجع فتحها تاني)
   document.getElementById('overlay-visit').classList.remove('show');
+  stopVisitTimerDisplay();
 });
 document.getElementById('visit-finish').addEventListener('click', ()=>{
   const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
@@ -1766,11 +1864,13 @@ document.getElementById('visit-finish').addEventListener('click', ()=>{
       channel: store.channel || '',
     }),
   }).catch(()=>{});
+  activeVisit = null;
+  stopVisitTimerDisplay();
   showToast('تمت الزيارة بنجاح ✓');
   document.getElementById('overlay-visit').classList.remove('show');
 });
 
-/* ---------- مندوب: اختيار وملء استبيان لمحل معين ---------- */
+/* ---------- منسق: اختيار وملء استبيان لمحل معين ---------- */
 window.openSurveysForStore = function(storeId){
   state.surveyFillStoreId = storeId;
   map.closePopup();
@@ -1826,7 +1926,7 @@ window.openSurveyFillForm = async function(surveyId){
         });
         showToast('اتحملت آخر إجابات اتسجلت للمحل ده، وتقدر تعدلها');
       }
-    }catch(e){ /* لو فشل التحميل، هيبدأ فاضي عادي من غير ما نوقف المندوب */ }
+    }catch(e){ /* لو فشل التحميل، هيبدأ فاضي عادي من غير ما نوقف المنسق */ }
   }
   renderSurveyFillForm();
 };
@@ -2084,7 +2184,7 @@ document.getElementById('login-pass-eye').addEventListener('click', ()=>{
   }catch(e){ /* تجاهل */ }
 })();
 
-let customReps = []; // مناديب زودهم الأدمن يدوي (كود + باسورد)، منفصلين عن TDM1-44 الأساسيين، ومنفصلين لكل مشروع
+let customReps = []; // منسقين زودهم الأدمن يدوي (كود + باسورد)، منفصلين عن TDM1-44 الأساسيين، ومنفصلين لكل مشروع
 async function loadCustomReps(){
   try{
     const res = await window.storage.get(pk('custom_reps'), true);
@@ -2093,7 +2193,7 @@ async function loadCustomReps(){
   }catch(e){ customReps = []; }
 }
 
-let repNamesMap = {}; // كود المندوب -> اسم المنسق الحقيقي، متخزنة في جوجل شيت (مش window.storage) عشان تتصفح بسهولة
+let repNamesMap = {}; // كود المنسق -> اسم المنسق الحقيقي، متخزنة في جوجل شيت (مش window.storage) عشان تتصفح بسهولة
 async function loadRepNames(){
   if(!ACTION_LOG_ENDPOINT){ repNamesMap = {}; return; }
   try{
@@ -2197,7 +2297,7 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
     }catch(e){ /* لو فشل التحقق، منكملش نمنع دخول شرعي بسبب مشكلة شبكة */ }
   }
   if(user === 'admin'){
-    // الأدمن دلوقتي بيشوف ويعدّل على بيانات كل المناديب مع بعض في نفس المشروع، من غير ما يختار مندوب بعينه
+    // الأدمن دلوقتي بيشوف ويعدّل على بيانات كل المنسقين مع بعض في نفس المشروع، من غير ما يختار منسق بعينه
     state.isAdmin = true;
     state.repCode = 'ALL';
     state.readOnly = false;
@@ -2206,7 +2306,7 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
     state.repCode = user;
     state.readOnly = false;
 
-    // تنبيه: لو الجهاز ده كان متسجل عليه مندوب مختلف قبل كده
+    // تنبيه: لو الجهاز ده كان متسجل عليه منسق مختلف قبل كده
     try{
       const DEVICE_KEY = 'masar_last_device_rep';
       const lastRepOnDevice = localStorage.getItem(DEVICE_KEY);
@@ -2218,7 +2318,7 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   }
 
   document.getElementById('login-btn').disabled = true;
-  document.getElementById('login-btn').textContent = state.isAdmin ? 'بتجمع بيانات كل المناديب...' : 'جاري الدخول...';
+  document.getElementById('login-btn').textContent = state.isAdmin ? 'بتجمع بيانات كل المنسقين...' : 'جاري الدخول...';
 
   if(state.isAdmin){
     state.stores = [];
@@ -2251,31 +2351,24 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('current-user-label').textContent = state.isAdmin
-    ? 'admin — كل المناديب'
+    ? 'admin — كل المنسقين'
     : state.repCode;
 
   const showAdminEdit = state.isAdmin;
   ['btn-import','btn-bulk-zone'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = showAdminEdit ? 'flex' : 'none'; });
-  document.getElementById('btn-master-update').style.display = state.isAdmin ? 'flex' : 'none';
-  document.getElementById('btn-clients-db').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-manage-surveys').style.display = state.isAdmin ? 'flex' : 'none';
-  document.getElementById('btn-coordinators').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-reports').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-create-project').style.display = state.isAdmin ? 'flex' : 'none';
-  document.getElementById('btn-full-reset').style.display = state.isAdmin ? 'flex' : 'none';
-  document.getElementById('btn-reset-sheets').style.display = state.isAdmin ? 'flex' : 'none';
-  document.getElementById('btn-add-rep').style.display = state.isAdmin ? 'flex' : 'none';
-  document.getElementById('btn-bulk-add-reps').style.display = state.isAdmin ? 'flex' : 'none';
-  document.getElementById('btn-delete-rep').style.display = state.isAdmin ? 'flex' : 'none';
-  document.getElementById('btn-reenable-rep').style.display = state.isAdmin ? 'flex' : 'none';
+  document.getElementById('btn-open-coordinators-menu').style.display = state.isAdmin ? 'flex' : 'none';
+  document.getElementById('btn-open-data-menu').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('dd-admin-divider').style.display = state.isAdmin ? 'block' : 'none';
 
   weekSelect.value = state.readOnly ? '1' : await loadCurrentWeek(state.repCode);
   loadSurveysFromServer(); // بنجيب الاستبيانات في الخلفية، مش لازم نستنى
   loadRepNames(); // وأسماء المنسقين كمان في الخلفية
-  if(!state.isAdmin) startLiveLocationTracking(); // تتبع مباشر للمندوب وهو ماشي، مش هيحتاج يدوس "موقعي" كل شوية
+  if(!state.isAdmin) startLiveLocationTracking(); // تتبع مباشر للمنسق وهو ماشي، مش هيحتاج يدوس "موقعي" كل شوية
 
-  const editButtons = ['btn-add-mode','btn-export','btn-backup-import','btn-locate'];
+  const editButtons = ['btn-add-mode','btn-export','btn-locate'];
   editButtons.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = state.readOnly ? 'none' : 'flex'; });
 
   initMapOnce();
@@ -2335,7 +2428,7 @@ function initMapOnce(){
 let watchPositionId = null;
 let lastLocationUpdateTime = 0;
 
-/* تتبّع مباشر: بيحدّث موقع المندوب أوتوماتيك وهو ماشي، من غير ما يحتاج يدوس "موقعي" كل شوية */
+/* تتبّع مباشر: بيحدّث موقع المنسق أوتوماتيك وهو ماشي، من غير ما يحتاج يدوس "موقعي" كل شوية */
 function startLiveLocationTracking(){
   if(!navigator.geolocation) return;
   if(watchPositionId != null) return; // شغال بالفعل
@@ -2845,7 +2938,7 @@ function zoneNameOf(store){
 
 function buildPopupHTML(store){
   if(!state.isAdmin){
-    // نسخة "الزيارة": المندوب مايشوفش أي تفاصيل تانية، بس زرار ابدأ الزيارة
+    // نسخة "الزيارة": المنسق مايشوفش أي تفاصيل تانية، بس زرار ابدأ الزيارة
     return `
       <div class="pop">
         <p class="pop-title">${escapeHtml(store.name)}</p>
@@ -2969,7 +3062,7 @@ function updateStats(){
 }
 document.getElementById('search-box').addEventListener('input', renderMarkers);
 
-/* تذكير دوري لو المندوب لسه تحت الحد الأدنى المطلوب من الزيارات الشهرية */
+/* تذكير دوري لو المنسق لسه تحت الحد الأدنى المطلوب من الزيارات الشهرية */
 function maybeRemindMonthlyMinimum(){
   if(state.repCode==='ALL' || !state.repCode) return;
   const monthly = totalMonthlyVisits(null);
@@ -3044,10 +3137,10 @@ function setAddMode(v){
 }
 document.getElementById('btn-add-mode').addEventListener('click', async ()=>{
   if(!state.isAdmin){
-    // المندوب لازم يحدد موقعه الفعلي الأول، والإضافة بتتم بالظبط في مكانه (مش دوس على الخريطة)
+    // المنسق لازم يحدد موقعه الفعلي الأول، والإضافة بتتم بالظبط في مكانه (مش دوس على الخريطة)
     if(!myLocation){
       showToast('لازم تدوس "موقعي" الأول عشان نحدد مكانك بالظبط، وبعدين تقدر تضيف المحل');
-      logAlert('محاولة إضافة من غير لوكيشن', 'المندوب حاول يضيف محل من غير ما يحدد موقعه أصلاً');
+      logAlert('محاولة إضافة من غير لوكيشن', 'المنسق حاول يضيف محل من غير ما يحدد موقعه أصلاً');
       return;
     }
     if(myLocation.approximate){
@@ -3259,7 +3352,7 @@ window.openReplaceFlow = async function(storeId){
   if(!state.isAdmin){
     if(!myLocation){
       showToast('لازم تدوس "موقعي" الأول عشان نحدد مكانك بالظبط، وبعدين تقدر تضيف المحل البديل');
-      logAlert('محاولة إضافة من غير لوكيشن', 'المندوب حاول يضيف محل بديل من غير ما يحدد موقعه', store ? store.code : '', store ? store.name : '');
+      logAlert('محاولة إضافة من غير لوكيشن', 'المنسق حاول يضيف محل بديل من غير ما يحدد موقعه', store ? store.code : '', store ? store.name : '');
       return;
     }
     if(myLocation.approximate){
@@ -3625,7 +3718,7 @@ async function openStoreModal({mode, lat, lng, replacingFor}){
 
   const autoCode = await getNextAutoCode(state.repCode);
   document.getElementById('store-code').value = autoCode!=null ? String(autoCode) : '';
-  if(autoCode==null) showToast('معرفتش أحدد كود تلقائي — جرب من حساب مندوب محدد بدل "الكل"');
+  if(autoCode==null) showToast('معرفتش أحدد كود تلقائي — جرب من حساب منسق محدد بدل "الكل"');
 }
 document.getElementById('store-cancel').addEventListener('click', ()=>{
   overlayStore.classList.remove('show');
@@ -3892,7 +3985,7 @@ document.getElementById('btn-master-update').addEventListener('click', ()=>{
 });
 
 document.getElementById('btn-full-reset').addEventListener('click', async ()=>{
-  const warning = 'تحذير خطير:\n\nده هيمسح كل المحلات وكل الزونات (النطاقات) لكل الـ44 مندوب نهائيًا، وهيبدأ الخريطة فاضية تمامًا من الأول.\n\nهياخد باك أب لكل مندوب قبل المسح تقدر تسترجعه بعدين من "استرجاع نسخة"، لكن الأفضل تتأكد إنك عايز فعلاً تعمل كده.\n\nمتأكد عايز تكمل؟';
+  const warning = 'تحذير خطير:\n\nده هيمسح كل المحلات وكل الزونات (النطاقات) لكل الـ44 منسق نهائيًا، وهيبدأ الخريطة فاضية تمامًا من الأول.\n\nهياخد باك أب لكل منسق قبل المسح تقدر تسترجعه بعدين من "استرجاع نسخة"، لكن الأفضل تتأكد إنك عايز فعلاً تعمل كده.\n\nمتأكد عايز تكمل؟';
   if(!confirm(warning)) return;
   const typed = prompt('اكتب "تصفية كاملة" بالظبط عشان تأكد (من غير علامات تنصيص):');
   if(typed !== 'تصفية كاملة'){
@@ -3929,10 +4022,10 @@ document.getElementById('btn-full-reset').addEventListener('click', async ()=>{
     done++;
   }
 
-  progress.textContent = `تمت التصفية الكاملة لـ ${repCodes.length} مندوب ✓ الخريطة فاضية دلوقتي، وفيه باك أب محفوظ لكل مندوب لو احتجته تسترجعه.`;
+  progress.textContent = `تمت التصفية الكاملة لـ ${repCodes.length} منسق ✓ الخريطة فاضية دلوقتي، وفيه باك أب محفوظ لكل منسق لو احتجته تسترجعه.`;
   doneActions.style.display = 'flex';
 
-  // لو الأدمن فاتح نظرة عامة أو مندوب معين دلوقتي، نحدّث الخريطة قدامه فورًا
+  // لو الأدمن فاتح نظرة عامة أو منسق معين دلوقتي، نحدّث الخريطة قدامه فورًا
   if(state.repCode){
     state.stores = await loadStores(state.repCode==='ALL' ? state.repCode : state.repCode);
     state.zones = await loadZones(state.repCode);
@@ -3973,7 +4066,7 @@ async function getDisabledReps(){
 }
 
 document.getElementById('btn-add-rep').addEventListener('click', async ()=>{
-  const codeInput = prompt('اكتب كود المندوب الجديد (مثال: TDM45 أو أي اسم تاني مميز):');
+  const codeInput = prompt('اكتب كود المنسق الجديد (مثال: TDM45 أو أي اسم تاني مميز):');
   if(!codeInput) return;
   const code = codeInput.trim().toUpperCase();
   if(!code || code==='ADMIN' || code==='ALL'){
@@ -3985,7 +4078,7 @@ document.getElementById('btn-add-rep').addEventListener('click', async ()=>{
     showToast('الكود ده مستخدم بالفعل، اختار كود تاني');
     return;
   }
-  const password = prompt(`حط باسورد لـ "${code}" (أرقام أو حروف، المندوب هيستخدمه في الدخول):`);
+  const password = prompt(`حط باسورد لـ "${code}" (أرقام أو حروف، المنسق هيستخدمه في الدخول):`);
   if(!password || !password.trim()){
     showToast('لازم تحط باسورد');
     return;
@@ -4018,7 +4111,7 @@ document.getElementById('bulk-reps-file-input').addEventListener('change', async
     return;
   }
   const headerRow = rows[0];
-  const codeCol = findCol(headerRow, ['Code','كود','كود المندوب','Username','يوزر']);
+  const codeCol = findCol(headerRow, ['Code','كود','كود المنسق','Username','يوزر']);
   const passCol = findCol(headerRow, ['Password','باسورد','كلمة السر']);
   if(codeCol===-1 || passCol===-1){
     showToast('الملف لازم يكون فيه عمود Code وعمود Password (أو كود / باسورد)');
@@ -4047,7 +4140,7 @@ document.getElementById('bulk-reps-file-input').addEventListener('change', async
   try{
     await window.storage.set(pk('custom_reps'), JSON.stringify(customReps), true);
     addedCodes.forEach(addRepOptionToAllSelects);
-    showToast(`اتضاف ${added} مندوب جديد ✓${skipped>0 ? ` (اتجاهل ${skipped} صف - مكرر أو ناقص بيانات)` : ''}`);
+    showToast(`اتضاف ${added} منسق جديد ✓${skipped>0 ? ` (اتجاهل ${skipped} صف - مكرر أو ناقص بيانات)` : ''}`);
   }catch(err){
     customReps = customReps.filter(r=>!addedCodes.includes(r.code));
     showToast('حصلت مشكلة في الحفظ، جرب تاني');
@@ -4055,15 +4148,15 @@ document.getElementById('bulk-reps-file-input').addEventListener('change', async
 });
 
 document.getElementById('btn-delete-rep').addEventListener('click', async ()=>{
-  const repInput = prompt('اكتب كود المندوب اللي عايز تمسحه بالكامل (مثال: TDM12):');
+  const repInput = prompt('اكتب كود المنسق اللي عايز تمسحه بالكامل (مثال: TDM12):');
   if(!repInput) return;
   const rep = repInput.trim().toUpperCase();
   const existingUsers = buildUsers();
   if(rep==='ADMIN' || !existingUsers.includes(rep)){
-    showToast('الكود ده مش موجود في قايمة المناديب');
+    showToast('الكود ده مش موجود في قايمة المنسقين');
     return;
   }
-  const warning = `تحذير خطير:\n\nده هيمسح كل بيانات "${rep}" (المحلات + الزونات) نهائيًا، وهيوقف حسابه تمامًا من الدخول تاني على الابليكيشن.\n\nهياخد باك أب قبل المسح تقدر تسترجعه من "استرجاع نسخة"، بس الحساب هيفضل معطّل لحد ما تفعّله تاني من "تفعيل مندوب معطّل".\n\nمتأكد؟`;
+  const warning = `تحذير خطير:\n\nده هيمسح كل بيانات "${rep}" (المحلات + الزونات) نهائيًا، وهيوقف حسابه تمامًا من الدخول تاني على الابليكيشن.\n\nهياخد باك أب قبل المسح تقدر تسترجعه من "استرجاع نسخة"، بس الحساب هيفضل معطّل لحد ما تفعّله تاني من "تفعيل منسق معطّل".\n\nمتأكد؟`;
   if(!confirm(warning)) return;
   const typed = prompt(`اكتب "${rep}" بالظبط عشان تأكد:`);
   if(typed !== rep){ showToast('اتلغى — النص مطابقش، مفيش حاجة اتمسحت'); return; }
@@ -4093,7 +4186,7 @@ document.getElementById('btn-reenable-rep').addEventListener('click', async ()=>
     showToast('مفيش حسابات معطّلة دلوقتي');
     return;
   }
-  const repInput = prompt(`الحسابات المعطّلة دلوقتي: ${disabled.join('، ')}\n\nاكتب كود المندوب اللي عايز تفعّل حسابه تاني:`);
+  const repInput = prompt(`الحسابات المعطّلة دلوقتي: ${disabled.join('، ')}\n\nاكتب كود المنسق اللي عايز تفعّل حسابه تاني:`);
   if(!repInput) return;
   const rep = repInput.trim().toUpperCase();
   if(!disabled.includes(rep)){
@@ -4154,6 +4247,8 @@ function findCol(headerRow, names){
   return -1;
 }
 
+let pendingMasterImport = null; // بيحمل كل حاجة محتاجينها بعد ما الأدمن يأكد الربط
+
 document.getElementById('master-file-input').addEventListener('change', async (e)=>{
   const file = e.target.files[0];
   if(!file) return;
@@ -4184,7 +4279,7 @@ document.getElementById('master-file-input').addEventListener('change', async (e
     channel: findCol(header, ['Channel', 'تصنيف', 'قناة']),
   };
   if(idx.code===-1 || idx.lat===-1 || idx.lng===-1 || idx.rep===-1){
-    progress.textContent = 'الملف مش بنفس فورمات الشيت المتفق عليه، مش لاقي الأعمدة المطلوبة (لازم يكون فيه على الأقل: كود المحل، Latitude، Longitude، وعمود المندوب).';
+    progress.textContent = 'الملف مش بنفس فورمات الشيت المتفق عليه، مش لاقي الأعمدة المطلوبة (لازم يكون فيه على الأقل: كود المحل، Latitude، Longitude، وعمود المنسق).';
     doneActions.style.display = 'flex';
     return;
   }
@@ -4192,17 +4287,92 @@ document.getElementById('master-file-input').addEventListener('change', async (e
   for(let w=1; w<=4; w++){
     dayIdx[w] = DAYS.map(d => findCol(header, [`${d.key} ${w}`]));
   }
-  // لو الملف أصلاً مفيهوش أعمدة أيام خالص (زي ملفات Repzo القياسية)، هنوزّع الأيام تلقائي وبشكل متوازن بدل ما نعتبر المحل من غير جدول = محل متشال
   const hasAnyDayColumns = Object.values(dayIdx).some(arr => arr.some(c => c !== -1));
+
+  // نجمع كل القيم المختلفة الموجودة في عمود المنسق عشان نشوف لو محتاجين نعمل ربط يدوي
+  const knownCodes = new Set(allRepCodes().map(c=>c.toLowerCase()));
+  const rawRepNames = new Set();
+  for(let r=1; r<rows.length; r++){
+    const row = rows[r];
+    if(!row || row[idx.code]==null) continue;
+    const rep = String(row[idx.rep]||'').trim();
+    if(rep) rawRepNames.add(rep);
+  }
+  const needsMapping = [...rawRepNames].some(name => !knownCodes.has(name.toLowerCase()));
+
+  pendingMasterImport = { rows, idx, dayIdx, hasAnyDayColumns };
+
+  if(!needsMapping){
+    // كل القيم في عمود المنسق أصلاً أكواد يوزر معروفة (ran1, ran2...)، منحتاجش خطوة ربط
+    await runMasterImport(rows, idx, dayIdx, hasAnyDayColumns, null);
+    return;
+  }
+
+  // محتاجين الأدمن يربط كل اسم لقيناه بيوزر فعلي عشان البيانات تظهر صح
+  overlay.classList.remove('show');
+  renderRepMappingUI([...rawRepNames].sort());
+  document.getElementById('overlay-rep-mapping').classList.add('show');
+});
+
+function renderRepMappingUI(names){
+  const knownCodes = allRepCodes();
+  const nameToCode = {}; // للتخمين التلقائي: لو اسم المنسق المسجل مطابق للاسم في الملف
+  Object.keys(repNamesMap).forEach(code=>{
+    const n = (repNamesMap[code]||'').trim().toLowerCase();
+    if(n) nameToCode[n] = code;
+  });
+  const box = document.getElementById('rep-mapping-list');
+  box.innerHTML = names.map(name=>{
+    const guessed = nameToCode[name.trim().toLowerCase()] || '';
+    const options = ['<option value="">— تجاهل الاسم ده —</option>']
+      .concat(knownCodes.map(c => `<option value="${c}" ${c===guessed?'selected':''}>${c}${repNamesMap[c]?' — '+escapeHtml(repNamesMap[c]):''}</option>`));
+    return `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="flex:1;font-weight:600;">${escapeHtml(name)}</span>
+        <select data-raw-name="${escapeHtml(name)}" style="flex:1;padding:8px 10px;border-radius:9px;border:1.5px solid var(--line);">
+          ${options.join('')}
+        </select>
+      </div>`;
+  }).join('');
+}
+document.getElementById('rep-mapping-cancel').addEventListener('click', ()=>{
+  document.getElementById('overlay-rep-mapping').classList.remove('show');
+  pendingMasterImport = null;
+});
+document.getElementById('rep-mapping-confirm').addEventListener('click', async ()=>{
+  const mapping = {};
+  document.querySelectorAll('#rep-mapping-list select').forEach(sel=>{
+    mapping[sel.dataset.rawName] = sel.value || null;
+  });
+  document.getElementById('overlay-rep-mapping').classList.remove('show');
+  if(!pendingMasterImport) return;
+  const {rows, idx, dayIdx, hasAnyDayColumns} = pendingMasterImport;
+  document.getElementById('overlay-master').classList.add('show');
+  await runMasterImport(rows, idx, dayIdx, hasAnyDayColumns, mapping);
+});
+
+async function runMasterImport(rows, idx, dayIdx, hasAnyDayColumns, repMapping){
+  const overlay = document.getElementById('overlay-master');
+  const progress = document.getElementById('master-progress');
+  const doneActions = document.getElementById('master-done-actions');
+  doneActions.style.display = 'none';
+  progress.textContent = 'بيتم التجهيز...';
+  overlay.classList.add('show');
 
   const byRep = {};
   let outOfBoundsCount = 0;
+  let ignoredByMapping = 0;
   for(let r=1; r<rows.length; r++){
     const row = rows[r];
     if(!row || row[idx.code]==null) continue;
     const code = String(row[idx.code]).trim();
-    const rep = String(row[idx.rep]||'').trim();
-    if(!rep) continue;
+    const rawRep = String(row[idx.rep]||'').trim();
+    if(!rawRep) continue;
+    let rep = rawRep;
+    if(repMapping){
+      if(!(rawRep in repMapping) || !repMapping[rawRep]){ ignoredByMapping++; continue; }
+      rep = repMapping[rawRep];
+    }
     const lat = parseFloat(row[idx.lat]);
     const lng = parseFloat(row[idx.lng]);
     if(isNaN(lat) || isNaN(lng)) continue;
@@ -4235,7 +4405,7 @@ document.getElementById('master-file-input').addEventListener('change', async (e
         days: Array.from(daysSet).sort((a,b)=>a-b),
       };
     } else if(!hasAnyDayColumns){
-      // الملف مفيهوش نظام أيام خالص، فبنوزّع يوم واحد أسبوعي بشكل متوازن على حسب المحلات اللي جمعناها لحد دلوقتي لنفس المندوب
+      // الملف مفيهوش نظام أيام خالص، فبنوزّع يوم واحد أسبوعي بشكل متوازن على حسب المحلات اللي جمعناها لحد دلوقتي لنفس المنسق
       const repStoresSoFar = byRep[rep] || [];
       const day = pickBalancedDay(repStoresSoFar);
       assignment = { freq:'weekly', weekGroup:null, days:[day] };
@@ -4301,8 +4471,9 @@ document.getElementById('master-file-input').addEventListener('change', async (e
     done++;
   }
 
-  progress.textContent = `تم التحديث لـ ${repCodes.length} مندوب بنجاح ✓` +
+  progress.textContent = `تم التحديث لـ ${repCodes.length} منسق بنجاح ✓` +
     (totalRemoved>0 ? ` — اتشال ${totalRemoved} محل من الخريطة (كان صفر أيام زيارة في الشيت الجديد).` : '') +
+    (ignoredByMapping>0 ? ` — اتجاهل ${ignoredByMapping} صف (اخترت تتجاهل اسمهم في خطوة الربط).` : '') +
     (outOfBoundsCount>0 ? ` تنبيه: ${outOfBoundsCount} محل بإحداثيات غريبة برا حدود مصر تقريبًا، راجعهم.` : '');
   doneActions.style.display = 'flex';
 
@@ -4318,7 +4489,7 @@ document.getElementById('master-file-input').addEventListener('change', async (e
     state.stores = await loadStores(state.repCode);
     renderMarkers();
   }
-});
+}
 
 /* ===================== Export Excel ===================== */
 function getExportColumns(){
@@ -4382,49 +4553,14 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
   XLSX.writeFile(wb, `route_${state.repCode}_${new Date().toISOString().slice(0,10)}.xlsx`);
 });
 
-/* ===================== Manual JSON backup (export/import) ===================== */
-async function runBackupExport(isAuto){
-  let payload;
-  const dateStr = new Date().toISOString().slice(0,10);
-  let filename;
-  if(state.repCode==='ALL'){
-    const allData = {};
-    for(let i=1;i<=BASE_REP_COUNT;i++){
-      const code = BASE_REP_PREFIX+i;
-      allData[code] = { stores: await loadStores(code), zones: await loadZones(code) };
-    }
-    payload = { type:'ALL_REPS_BACKUP', savedAt: new Date().toISOString(), data: allData };
-    filename = `backup_ALL_${dateStr}_${Date.now()}.json`;
-  } else {
-    if(!state.repCode || !state.stores || !state.stores.length) return; // مفيش سيشن شغالة، متعملش نسخة فاضية
-    payload = {
-      type:'SINGLE_REP_BACKUP', repCode: state.repCode, savedAt: new Date().toISOString(),
-      stores: state.stores, zones: state.zones, currentWeek: weekSelect.value,
-    };
-    filename = `backup_${state.repCode}_${dateStr}_${Date.now()}.json`;
-  }
-  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast(isAuto ? '📦 اتعملت نسخة احتياطية تلقائية (كل ساعة)' : 'اتحفظت النسخة الاحتياطية — خليها في مكان آمن');
-}
-const btnBackupExportEl = document.getElementById('btn-backup-export');
-if(btnBackupExportEl) btnBackupExportEl.addEventListener('click', ()=> runBackupExport(false));
-
-/* نسخة احتياطية تلقائية كل ساعة طول ما التطبيق مفتوح */
-setInterval(()=>{ if(!state.readOnly) runBackupExport(true); }, 60*60*1000);
-
-/* ===================== Exit confirmation with countdown ===================== */
+/* ===================== Exit confirmation ===================== */
 const overlayExitConfirm = document.getElementById('overlay-exit-confirm');
 const exitConfirmBtn = document.getElementById('exit-confirm');
-const exitCountdownSpan = document.getElementById('exit-countdown');
-let exitCountdownTimer = null;
 
 function doLogout(){
   stopLiveLocationTracking();
+  stopVisitTimerDisplay();
+  activeVisit = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   if(!document.getElementById('login-remember').checked){
@@ -4433,100 +4569,15 @@ function doLogout(){
   state.repCode = null; state.stores = [];
 }
 
-function startExitCountdown(){
-  let secondsLeft = 5;
-  exitConfirmBtn.disabled = true;
-  exitConfirmBtn.style.opacity = '.5';
-  exitConfirmBtn.textContent = '';
-  exitConfirmBtn.append('استنى... (');
-  const span = document.createElement('span');
-  span.id = 'exit-countdown';
-  span.textContent = secondsLeft;
-  exitConfirmBtn.append(span, ')');
-  exitCountdownTimer = setInterval(()=>{
-    secondsLeft--;
-    if(secondsLeft <= 0){
-      clearInterval(exitCountdownTimer);
-      exitConfirmBtn.disabled = false;
-      exitConfirmBtn.style.opacity = '1';
-      exitConfirmBtn.textContent = 'أيوة، خروج';
-    } else {
-      span.textContent = secondsLeft;
-    }
-  }, 1000);
-}
-
 document.getElementById('btn-logout').addEventListener('click', ()=>{
   overlayExitConfirm.classList.add('show');
-  startExitCountdown();
 });
-document.getElementById('exit-backup-now').addEventListener('click', ()=> runBackupExport(false));
 document.getElementById('exit-cancel').addEventListener('click', ()=>{
-  clearInterval(exitCountdownTimer);
   overlayExitConfirm.classList.remove('show');
 });
 exitConfirmBtn.addEventListener('click', ()=>{
-  if(exitConfirmBtn.disabled) return;
-  clearInterval(exitCountdownTimer);
   overlayExitConfirm.classList.remove('show');
   doLogout();
-});
-
-/* تنبيه المتصفح لو المستخدم قفل التاب/الصفحة من غير ما يعدي بزرار الخروج */
-window.addEventListener('beforeunload', (e)=>{
-  if(state.readOnly || !state.repCode) return; // مفيش سيشن شغالة
-  e.preventDefault();
-  e.returnValue = 'اتأكد إنك عملت نسخة احتياطية قبل ما تسيب الصفحة.';
-  return e.returnValue;
-});
-
-const btnBackupImportEl = document.getElementById('btn-backup-import');
-if(btnBackupImportEl) btnBackupImportEl.addEventListener('click', ()=>{
-  document.getElementById('backup-import-input').click();
-});
-document.getElementById('backup-import-input').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  e.target.value = '';
-  try{
-    const text = await file.text();
-    const payload = JSON.parse(text);
-    if(payload.type === 'SINGLE_REP_BACKUP'){
-      if(payload.repCode && payload.repCode !== state.repCode){
-        if(!confirm(`الملف ده نسخة احتياطية لـ ${payload.repCode} مش لـ ${state.repCode}. عايز تستوردها هنا برضو؟`)) return;
-      } else if(!confirm(`هيتم استبدال بياناتك الحالية بالنسخة المحفوظة بتاريخ ${new Date(payload.savedAt).toLocaleString('ar-EG')}. متأكد؟`)) return;
-      state.stores = payload.stores || [];
-      state.zones = payload.zones || [];
-      if(payload.currentWeek) weekSelect.value = payload.currentWeek;
-      await saveStores(); await saveZones(); await saveCurrentWeek();
-      renderMarkers();
-      showToast('اترجعت النسخة الاحتياطية بنجاح');
-    } else if(payload.type === 'ALL_REPS_BACKUP'){
-      if(!confirm(`الملف ده نسخة شاملة لكل المناديب بتاريخ ${new Date(payload.savedAt).toLocaleString('ar-EG')}. هتستبدل بيانات كل المناديب الموجودين في الملف. متأكد؟`)) return;
-      for(const [rep, d] of Object.entries(payload.data)){
-        await window.storage.set(pk('stores:'+rep), JSON.stringify(d.stores||[]), true);
-        await window.storage.set(pk('zones:'+rep), JSON.stringify(d.zones||[]), true);
-      }
-      showToast('اترجعت النسخة الشاملة لكل المناديب بنجاح');
-      if(state.repCode==='ALL'){
-        state.stores = [];
-        for(let i=1;i<=BASE_REP_COUNT;i++){
-          const code = BASE_REP_PREFIX+i;
-          const s = await loadStores(code);
-          s.forEach(st => state.stores.push(Object.assign({}, st, {repCode: code})));
-        }
-      } else {
-        state.stores = await loadStores(state.repCode);
-        state.zones = await loadZones(state.repCode);
-      }
-      renderMarkers();
-    } else {
-      showToast('الملف ده مش نسخة احتياطية معروفة');
-    }
-  }catch(err){
-    console.error(err);
-    showToast('في مشكلة في قراءة الملف، تأكد إنه ملف النسخة الاحتياطية الصح');
-  }
 });
 
 /* ===================== Toast ===================== */
