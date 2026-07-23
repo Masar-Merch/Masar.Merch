@@ -2317,7 +2317,7 @@ let answeredAvailabilityCategories = []; // كاتيجوريز اتجاوب عل
 
 function openProductCategories(mode){
   productScreenMode = mode;
-  const list = mode==='availability' ? activeProducts() : auditableActiveProducts();
+  const list = activeProducts(); // توافر الأصناف والجرد بقوا نسخة طبق الأصل من نفس الكاتيجوريز والأصناف
   const cats = uniqueCategories(list);
   document.getElementById('product-categories-title').textContent = mode==='availability' ? 'توافر المنتجات — الكاتيجوري' : 'جرد المخزون — الكاتيجوري';
   const box = document.getElementById('product-categories-list');
@@ -2370,7 +2370,7 @@ window.openCategoryProducts = function(category){
     document.getElementById('overlay-product-categories').classList.remove('show');
     document.getElementById('overlay-availability-products').classList.add('show');
   } else {
-    const products = auditableActiveProducts().filter(p => (p.category||'(بدون كاتيجوري)') === category);
+    const products = activeProducts().filter(p => (p.category||'(بدون كاتيجوري)') === category);
     document.getElementById('inventory-products-title').textContent = category;
     document.getElementById('inventory-products-list').innerHTML = products.map(p=>`
       <button class="pop-btn primary" style="width:100%;display:flex;align-items:center;gap:12px;text-align:right;padding:10px;" onclick="openInventoryQuantity('${escapeHtml(p.sku).replace(/'/g,"\\'")}')">
@@ -2946,6 +2946,33 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
         return;
       }
     }catch(e){ /* لو فشل التحقق، منكملش نمنع دخول شرعي بسبب مشكلة شبكة */ }
+
+    // فحص Fake GPS قبل ما نسمحله يدخل الابليكيشن أصلاً (تقريبي مش أكيد 100%، بس بيصعّب التلاعب)
+    if(navigator.geolocation){
+      document.getElementById('login-btn').disabled = true;
+      document.getElementById('login-btn').textContent = 'بيتأكد من الموقع...';
+      const posResult = await new Promise(resolve=>{
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve(pos),
+          () => resolve(null),
+          { enableHighAccuracy:true, timeout:8000, maximumAge:0 }
+        );
+      });
+      if(posResult){
+        const suspicious = await isSuspiciousFakeLocation(posResult.coords.latitude, posResult.coords.longitude, posResult.coords.accuracy);
+        if(suspicious){
+          document.getElementById('login-btn').disabled = false;
+          document.getElementById('login-btn').textContent = 'دخول';
+          err.textContent = '⛔ موقعك شكله مش حقيقي (زي تطبيق Fake GPS شغال). شيله من على الموبايل وجرب تاني.';
+          state.repCode = user;
+          logAlert('محاولة دخول بموقع مشتبه فيه (Fake GPS)', `اليوزر: ${user}`);
+          state.repCode = null;
+          return;
+        }
+      }
+      document.getElementById('login-btn').disabled = false;
+      document.getElementById('login-btn').textContent = 'دخول';
+    }
   }
   if(user === 'admin'){
     // الأدمن دلوقتي بيشوف ويعدّل على بيانات كل المنسقين مع بعض في نفس المشروع، من غير ما يختار منسق بعينه
@@ -3081,6 +3108,56 @@ let watchPositionId = null;
 let lastLocationUpdateTime = 0;
 let lastServerPingTime = 0;
 
+/* ---------- كشف احتمال Fake GPS (تقريبي، مش أكيد 100% — قيد تقني معروف في متصفحات الويب) ---------- */
+let recentAccuracyReadings = [];
+let lastKnownPosition = null; // {lat, lng, t}
+function checkSpeedJumpSuspicious(lat, lng){
+  const now = Date.now();
+  if(lastKnownPosition){
+    const distKm = haversineMeters(lastKnownPosition.lat, lastKnownPosition.lng, lat, lng) / 1000;
+    const hours = (now - lastKnownPosition.t) / 3600000;
+    if(hours > 0){
+      const speedKmh = distKm / hours;
+      if(speedKmh > 300){ // مستحيل فيزيائيًا لمشي/عربية عادية = قفزة موقع مفاجئة
+        lastKnownPosition = {lat, lng, t: now};
+        return true;
+      }
+    }
+  }
+  lastKnownPosition = {lat, lng, t: now};
+  return false;
+}
+function checkAccuracyPatternSuspicious(accuracy){
+  if(accuracy == null) return false;
+  recentAccuracyReadings.push(accuracy);
+  if(recentAccuracyReadings.length > 5) recentAccuracyReadings.shift();
+  if(recentAccuracyReadings.length >= 4){
+    const allIdentical = recentAccuracyReadings.every(a => a === recentAccuracyReadings[0]);
+    if(allIdentical) return true; // GPS حقيقي بيتغير دقته باستمرار، مش بتفضل رقم ثابت طول الوقت
+  }
+  return false;
+}
+async function checkIpMismatchSuspicious(lat, lng){
+  try{
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), 4000);
+    const res = await fetch('https://ipapi.co/json/', {signal: controller.signal});
+    clearTimeout(timer);
+    const data = await res.json();
+    if(data && data.latitude != null && data.longitude != null){
+      const distKm = haversineMeters(lat, lng, data.latitude, data.longitude) / 1000;
+      if(distKm > 300) return true; // موقع الـ GPS بعيد جدًا عن موقع الشبكة/الـ IP
+    }
+  }catch(e){ /* فشل الفحص مايمنعش الدخول، منسيبه يعدي عادي */ }
+  return false;
+}
+async function isSuspiciousFakeLocation(lat, lng, accuracy){
+  const speedFlag = checkSpeedJumpSuspicious(lat, lng);
+  const accuracyFlag = checkAccuracyPatternSuspicious(accuracy);
+  const ipFlag = await checkIpMismatchSuspicious(lat, lng);
+  return speedFlag || accuracyFlag || ipFlag;
+}
+
 /* تتبّع مباشر: بيحدّث موقع المنسق أوتوماتيك وهو ماشي، من غير ما يحتاج يدوس "موقعي" كل شوية */
 function startLiveLocationTracking(){
   if(!navigator.geolocation) return;
@@ -3091,6 +3168,9 @@ function startLiveLocationTracking(){
       lastLocationUpdateTime = Date.now();
       drawMyLocation(pos.coords.accuracy);
       pingLocationToServer();
+      if(checkSpeedJumpSuspicious(pos.coords.latitude, pos.coords.longitude) || checkAccuracyPatternSuspicious(pos.coords.accuracy)){
+        logAlert('اشتباه Fake GPS أثناء التتبع', 'حركة موقع غير طبيعية أو نمط دقة GPS ثابت بشكل مريب');
+      }
     },
     (err)=>{
       console.warn('live tracking error', err.code, err.message);
@@ -3106,6 +3186,8 @@ function stopLiveLocationTracking(){
     navigator.geolocation.clearWatch(watchPositionId);
     watchPositionId = null;
   }
+  recentAccuracyReadings = [];
+  lastKnownPosition = null;
 }
 /* بنبعت للسيرفر مرة كل 20 ثانية بالكتير (مش كل تحديث GPS)، عشان الأدمن يقدر يشوف كل المنسقين لايف من "التتبع اللحظي" */
 function pingLocationToServer(){
@@ -4347,6 +4429,16 @@ function isEnglishOnly(text){
   return /^[A-Za-z0-9 &\-\.\',]+$/.test(text.trim());
 }
 
+/* كود العميل بالنسبة للأدمن: تسلسلي بالشكل CL-000001 (عميل رقم 1، رقم 2...)، مش مرتبط برينج مندوب معين */
+function nextClientSequentialCode(){
+  let maxN = 0;
+  state.stores.forEach(s=>{
+    const m = /^CL-(\d+)$/.exec(String(s.code||''));
+    if(m){ const n = parseInt(m[1],10); if(n>maxN) maxN = n; }
+  });
+  return 'CL-' + String(maxN+1).padStart(6,'0');
+}
+
 async function openStoreModal({mode, lat, lng, replacingFor}){
   state.replacingFor = replacingFor || null;
   document.getElementById('store-title').textContent = mode==='replace' ? 'إضافة محل بديل' : 'إضافة محل';
@@ -4386,7 +4478,7 @@ async function openStoreModal({mode, lat, lng, replacingFor}){
 
   overlayStore.classList.add('show');
 
-  const autoCode = await getNextAutoCode(state.repCode);
+  const autoCode = state.isAdmin ? nextClientSequentialCode() : await getNextAutoCode(state.repCode);
   document.getElementById('store-code').value = autoCode!=null ? String(autoCode) : '';
   if(autoCode==null) showToast('معرفتش أحدد كود تلقائي — جرب من حساب منسق محدد بدل "الكل"');
 }
