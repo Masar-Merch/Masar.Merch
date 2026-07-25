@@ -481,25 +481,29 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
 </div>
 
 <!-- ============ Rep: pick a survey for this store ============ -->
-<div class="overlay" id="overlay-survey-list">
-  <div class="modal" style="max-width:420px;">
+<div class="fullpage" id="overlay-survey-list">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="survey-pick-close">‹</button>
     <h3>الاستبيانات المتاحة</h3>
-    <div id="survey-pick-list" style="display:flex;flex-direction:column;gap:10px;margin-top:10px;"></div>
-    <div class="modal-actions">
-      <button class="btn-ghost" id="survey-pick-close">إلغاء</button>
-    </div>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div id="survey-pick-list" style="display:flex;flex-direction:column;gap:10px;max-width:520px;margin:0 auto;"></div>
   </div>
 </div>
 
 <!-- ============ Rep: fill a survey ============ -->
-<div class="overlay" id="overlay-survey-fill">
-  <div class="modal" style="max-width:520px;max-height:88vh;overflow-y:auto;">
+<div class="fullpage" id="overlay-survey-fill">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="survey-fill-cancel">‹</button>
     <h3 id="survey-fill-title">الاستبيان</h3>
-    <div id="survey-fill-body" style="display:flex;flex-direction:column;gap:16px;margin-top:10px;"></div>
-    <div class="modal-actions">
-      <button class="btn-ghost" id="survey-fill-cancel">إلغاء</button>
-      <button class="btn-solid" id="survey-fill-submit">إرسال الاستبيان</button>
-    </div>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div id="survey-fill-body" style="display:flex;flex-direction:column;gap:16px;max-width:520px;margin:0 auto;"></div>
+  </div>
+  <div class="fullpage-footer">
+    <button class="btn-solid" id="survey-fill-submit" style="width:100%;">إرسال الاستبيان</button>
   </div>
 </div>
 
@@ -547,6 +551,10 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     <div class="field">
       <label>Brand</label>
       <input type="text" id="add-product-brand" placeholder="Enter brand">
+    </div>
+    <div class="field">
+      <label>السعر الأساسي</label>
+      <input type="number" id="add-product-price" placeholder="0.00" step="0.01">
     </div>
     <div class="field">
       <label>صورة المنتج</label>
@@ -612,21 +620,104 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   </div>
 </div>
 
+<!-- ============ منسق: الأسعار — قايمة منتجات كاتيجوري ============ -->
+<div class="fullpage" id="overlay-prices-products">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="prices-products-back">‹</button>
+    <h3 id="prices-products-title">المنتجات</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div id="prices-products-list" style="display:flex;flex-direction:column;gap:10px;max-width:520px;margin:0 auto;"></div>
+  </div>
+</div>
+
+<!-- ============ منسق: تفاصيل سعر منتج ============ -->
+<div class="fullpage" id="overlay-prices-detail">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="prices-detail-back">‹</button>
+    <h3 id="prices-detail-title">السعر</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div style="max-width:420px;margin:0 auto;">
+      <div class="field">
+        <label>السعر الأساسي</label>
+        <div id="prices-base-price-display" style="font-size:22px;font-weight:800;color:var(--primary-dark);padding:10px 0;"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;font-weight:700;margin:14px 0;cursor:pointer;">
+        <input type="checkbox" id="prices-has-offer-checkbox" style="width:20px;height:20px;">
+        <span id="prices-offer-checkbox-label">سعر العرض</span>
+      </label>
+      <div class="field" id="prices-offer-input-wrap" style="display:none;">
+        <label>سعر العرض</label>
+        <input type="number" id="prices-offer-price-input" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+  </div>
+  <div class="fullpage-footer">
+    <button class="btn-solid" id="prices-detail-save" style="width:100%;">حفظ</button>
+  </div>
+</div>
+
 <!-- ============ منسق: جرد منتج واحد (كمية) ============ -->
-<div class="overlay" id="overlay-inventory-quantity">
-  <div class="modal" style="max-width:400px;">
+<div class="fullpage" id="overlay-inventory-quantity">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="inventory-quantity-cancel">‹</button>
     <h3 id="inventory-quantity-title">جرد المنتج</h3>
-    <div class="field">
-      <label>عدد الكراتين/الشرنك</label>
-      <input type="number" id="inventory-cartons" min="0" placeholder="0">
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div style="max-width:420px;margin:0 auto;">
+      <div class="field">
+        <label>عدد الكراتين/الشرنك</label>
+        <input type="number" id="inventory-cartons" min="0" placeholder="0">
+      </div>
+      <div class="field">
+        <label>عدد القطع</label>
+        <input type="number" id="inventory-pieces" min="0" placeholder="0">
+      </div>
     </div>
-    <div class="field">
-      <label>عدد القطع</label>
-      <input type="number" id="inventory-pieces" min="0" placeholder="0">
-    </div>
+  </div>
+  <div class="fullpage-footer">
+    <button class="btn-solid" id="inventory-quantity-save" style="width:100%;">حفظ</button>
+  </div>
+</div>
+
+<!-- ============ منسق: المساحات — قايمة منتجات كاتيجوري ============ -->
+<div class="fullpage" id="overlay-spaces-products">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="spaces-products-back">‹</button>
+    <h3 id="spaces-products-title">المنتجات</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div id="spaces-products-list" style="display:flex;flex-direction:column;gap:10px;max-width:520px;margin:0 auto;"></div>
+  </div>
+</div>
+
+<!-- ============ منسق: المساحات — تفاصيل منتج (4 طرق قياس) ============ -->
+<div class="fullpage" id="overlay-spaces-detail">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="spaces-detail-back">‹</button>
+    <h3 id="spaces-detail-title">المساحة</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div id="spaces-methods-list" style="display:flex;flex-direction:column;gap:14px;max-width:520px;margin:0 auto;"></div>
+  </div>
+  <div class="fullpage-footer">
+    <button class="btn-solid" id="spaces-detail-save" style="width:100%;">حفظ</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay-spaces-meter-confirm">
+  <div class="modal" style="max-width:380px;">
+    <h3>⚠️ متأكد من القياس؟</h3>
+    <p class="m-sub" id="spaces-meter-confirm-text"></p>
     <div class="modal-actions">
-      <button class="btn-ghost" id="inventory-quantity-cancel">إلغاء</button>
-      <button class="btn-solid" id="inventory-quantity-save">حفظ</button>
+      <button class="btn-ghost" id="spaces-meter-edit">تعديل</button>
+      <button class="btn-solid" id="spaces-meter-confirm-ok">موافق، صح</button>
     </div>
   </div>
 </div>
@@ -834,45 +925,47 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     </div>
     <button class="map-pick-btn" id="btn-pick-loc">📍 دوس هنا وبعدين دوس على الخريطة لتحديد الموقع</button>
 
-    <hr style="border:none;border-top:1.5px solid var(--line);margin:16px 0;">
+    <div id="store-photo-checklist-section">
+      <hr style="border:none;border-top:1.5px solid var(--line);margin:16px 0;">
 
-    <div class="field">
-      <label>صور المحل (لازم صورة واحدة على الأقل، وتقدر تضيف كذا صورة)</label>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <button type="button" class="btn-ghost" id="store-photo-camera-btn" style="flex:1;">📷 افتح الكاميرا</button>
-        <button type="button" class="btn-ghost" id="store-photo-gallery-btn" style="flex:1;">⬆️ رفع الصور</button>
+      <div class="field">
+        <label>صور المحل (لازم صورة واحدة على الأقل، وتقدر تضيف كذا صورة)</label>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button type="button" class="btn-ghost" id="store-photo-camera-btn" style="flex:1;">📷 افتح الكاميرا</button>
+          <button type="button" class="btn-ghost" id="store-photo-gallery-btn" style="flex:1;">⬆️ رفع الصور</button>
+        </div>
+        <input type="file" accept="image/*" capture="environment" id="store-photo-camera-input" style="display:none;">
+        <input type="file" accept="image/*" id="store-photo-gallery-input" style="display:none;" multiple>
+        <div id="store-photos-preview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
-      <input type="file" accept="image/*" capture="environment" id="store-photo-camera-input" style="display:none;">
-      <input type="file" accept="image/*" id="store-photo-gallery-input" style="display:none;" multiple>
-      <div id="store-photos-preview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-    </div>
-    <div class="field">
-      <label>محل قوي؟</label>
-      <select id="store-strong" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);">
-        <option value="">اختار...</option>
-        <option value="نعم">نعم</option>
-        <option value="لا">لا</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>تواجد ثلاجة جهينة؟</label>
-      <select id="store-jhina-fridge" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);">
-        <option value="">اختار...</option>
-        <option value="نعم">نعم</option>
-        <option value="لا">لا</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>تواجد منتجات مشروبات الطاقة؟</label>
-      <select id="store-energy-drinks" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);">
-        <option value="">اختار...</option>
-        <option value="نعم">نعم</option>
-        <option value="لا">لا</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>سبب الإضافة / ملاحظات أخرى</label>
-      <textarea id="store-add-reason" rows="2" placeholder="اكتب سبب إضافة المحل..." style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);resize:vertical;"></textarea>
+      <div class="field">
+        <label>محل قوي؟</label>
+        <select id="store-strong" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);">
+          <option value="">اختار...</option>
+          <option value="نعم">نعم</option>
+          <option value="لا">لا</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>تواجد ثلاجة جهينة؟</label>
+        <select id="store-jhina-fridge" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);">
+          <option value="">اختار...</option>
+          <option value="نعم">نعم</option>
+          <option value="لا">لا</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>تواجد منتجات مشروبات الطاقة؟</label>
+        <select id="store-energy-drinks" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);">
+          <option value="">اختار...</option>
+          <option value="نعم">نعم</option>
+          <option value="لا">لا</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>سبب الإضافة / ملاحظات أخرى</label>
+        <textarea id="store-add-reason" rows="2" placeholder="اكتب سبب إضافة المحل..." style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);resize:vertical;"></textarea>
+      </div>
     </div>
     <div class="field">
       <label>Channel (تصنيف العميل، اختياري)</label>
@@ -1004,6 +1097,7 @@ const VISIT_GEOFENCE_METERS = 100; // نطاق بدء/إنهاء الزيارة 
 const VISIT_SECTIONS = [
   {id:'visit_availability', icon:'📦', label:'توافر المنتجات'},
   {id:'visit_inventory',    icon:'📋', label:'جرد المخزون'},
+  {id:'visit_prices',       icon:'💰', label:'الأسعار'},
   {id:'__survey__',         icon:'📝', label:'الاستبيان'},
   {id:'visit_expiry',       icon:'⏳', label:'تواريخ الانتهاء'},
   {id:'visit_spaces',       icon:'📐', label:'المساحات'},
@@ -1668,6 +1762,7 @@ document.getElementById('btn-add-product').addEventListener('click', ()=>{
   document.getElementById('add-product-sku').value = '';
   document.getElementById('add-product-subcategory').value = '';
   document.getElementById('add-product-brand').value = '';
+  document.getElementById('add-product-price').value = '';
   document.getElementById('add-product-photo').value = '';
   document.getElementById('add-product-photo-preview').style.display = 'none';
   addProductPhotoFile = null;
@@ -1693,6 +1788,8 @@ document.getElementById('add-product-save').addEventListener('click', async ()=>
   const sku = document.getElementById('add-product-sku').value.trim();
   const subCategory = document.getElementById('add-product-subcategory').value.trim();
   const brand = document.getElementById('add-product-brand').value.trim();
+  const priceStr = document.getElementById('add-product-price').value;
+  const price = priceStr.trim()!=='' ? Number(priceStr) : null;
   if(!name || !category || !sku){
     showToast('لازم تملى Product Name وCategory وSKU على الأقل');
     return;
@@ -1709,7 +1806,7 @@ document.getElementById('add-product-save').addEventListener('click', async ()=>
       method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({
         kind:'importProducts', project: currentProject,
-        products: [{ sku, name, category, subCategory, brand, auditable:false, position:'', active:true, image: imageUrl }],
+        products: [{ sku, name, category, subCategory, brand, price, auditable:false, position:'', active:true, image: imageUrl }],
       }),
     });
     const data = await res.json();
@@ -1753,6 +1850,7 @@ document.getElementById('import-products-input').addEventListener('change', asyn
       auditable: findCol(header, ['Auditable']),
       brand: findCol(header, ['Brand']),
       position: findCol(header, ['Position']),
+      price: findCol(header, ['Price']),
     };
     if(idx.sku===-1 || idx.name===-1 || idx.category===-1){
       textEl.textContent = '⛔ الملف لازم يحتوي على الأقل: SKU, Name, Category.';
@@ -1772,6 +1870,7 @@ document.getElementById('import-products-input').addEventListener('change', asyn
         auditable: idx.auditable!==-1 ? (row[idx.auditable]===true || String(row[idx.auditable]).toUpperCase()==='TRUE') : false,
         brand: idx.brand!==-1 ? String(row[idx.brand]||'').trim() : '',
         position: idx.position!==-1 ? row[idx.position] : '',
+        price: idx.price!==-1 && row[idx.price]!=null && row[idx.price]!=='' ? Number(row[idx.price]) : null,
         active: true,
       });
     }
@@ -1837,6 +1936,7 @@ document.getElementById('update-products-input').addEventListener('change', asyn
       brand: findCol(header, ['Brand']),
       position: findCol(header, ['Position']),
       active: findCol(header, ['Active']),
+      price: findCol(header, ['Price']),
     };
     if(idx.sku===-1){
       textEl.textContent = '⛔ الملف لازم يحتوي على الأقل عمود SKU.';
@@ -1856,6 +1956,7 @@ document.getElementById('update-products-input').addEventListener('change', asyn
         auditable: idx.auditable!==-1 ? (row[idx.auditable]===true || String(row[idx.auditable]).toUpperCase()==='TRUE') : false,
         brand: idx.brand!==-1 ? String(row[idx.brand]||'').trim() : '',
         position: idx.position!==-1 ? row[idx.position] : '',
+        price: idx.price!==-1 && row[idx.price]!=null && row[idx.price]!=='' ? Number(row[idx.price]) : null,
         active: idx.active!==-1 ? (row[idx.active]===true || String(row[idx.active]).toUpperCase()==='TRUE') : true,
       });
     }
@@ -2306,12 +2407,20 @@ window.openVisitSection = function(sectionId){
     openProductCategories('inventory');
     return;
   }
-  // باقي الأقسام (تواريخ الانتهاء / المساحات) لسه استبيانات مدمجة ثابتة (نص + صور)
+  if(sectionId === 'visit_spaces'){
+    openProductCategories('spaces');
+    return;
+  }
+  if(sectionId === 'visit_prices'){
+    openProductCategories('prices');
+    return;
+  }
+  // باقي الأقسام (تواريخ الانتهاء) لسه استبيانات مدمجة ثابتة (نص + صور)
   openSurveyFillForm(sectionId);
 };
 
-/* ===================== منسق: توافر المنتجات + جرد المخزون ===================== */
-let productScreenMode = null; // 'availability' | 'inventory'
+/* ===================== منسق: توافر المنتجات + جرد المخزون + المساحات + الأسعار ===================== */
+let productScreenMode = null; // 'availability' | 'inventory' | 'spaces' | 'prices'
 let productScreenSelectedCategory = null;
 let answeredAvailabilityCategories = []; // كاتيجوريز اتجاوب عليها في الزيارة الحالية (من السيرفر)
 
@@ -2319,7 +2428,10 @@ function openProductCategories(mode){
   productScreenMode = mode;
   const list = activeProducts(); // توافر الأصناف والجرد بقوا نسخة طبق الأصل من نفس الكاتيجوريز والأصناف
   const cats = uniqueCategories(list);
-  document.getElementById('product-categories-title').textContent = mode==='availability' ? 'توافر المنتجات — الكاتيجوري' : 'جرد المخزون — الكاتيجوري';
+  document.getElementById('product-categories-title').textContent =
+    mode==='availability' ? 'توافر المنتجات — الكاتيجوري' :
+    mode==='inventory' ? 'جرد المخزون — الكاتيجوري' :
+    mode==='prices' ? 'الأسعار — الكاتيجوري' : 'المساحات — الكاتيجوري';
   const box = document.getElementById('product-categories-list');
   if(cats.length===0){
     box.innerHTML = '<p class="hint">مفيش كاتيجوريز متاحة دلوقتي.</p>';
@@ -2351,6 +2463,14 @@ window.toggleAvailabilityLabel = function(input){
 
 window.openCategoryProducts = function(category){
   productScreenSelectedCategory = category;
+  if(productScreenMode === 'spaces'){
+    openSpacesProductsList(category);
+    return;
+  }
+  if(productScreenMode === 'prices'){
+    openPricesProductsList(category);
+    return;
+  }
   if(productScreenMode === 'availability'){
     const products = activeProducts().filter(p => (p.category||'(بدون كاتيجوري)') === category);
     document.getElementById('availability-products-title').textContent = category;
@@ -2453,6 +2573,245 @@ document.getElementById('inventory-quantity-save').addEventListener('click', asy
     });
     showToast('اتحفظ الجرد ✓');
     document.getElementById('overlay-inventory-quantity').classList.remove('show');
+  }catch(e){
+    showToast('حصلت مشكلة، جرب تاني');
+  }
+  btn.disabled = false; btn.textContent = 'حفظ';
+});
+
+/* ===================== منسق: المساحات ===================== */
+const SPACE_METHODS = [
+  {key:'faces', label:'الحساب بعدد الأوجه'},
+  {key:'meters', label:'الحساب بالمتر'},
+  {key:'shelf', label:'الحساب بالرف'},
+  {key:'gondola', label:'الحساب بالجندولة'},
+];
+let currentSpacesProduct = null;
+let currentSpacesState = {method:null, entries:[]}; // entries: [{type:'own'|'competitor', value:number}]
+
+window.openSpacesProductsList = function(category){
+  const products = activeProducts().filter(p => (p.category||'(بدون كاتيجوري)') === category);
+  document.getElementById('spaces-products-title').textContent = category;
+  document.getElementById('spaces-products-list').innerHTML = products.map(p=>`
+    <button class="pop-btn primary" style="width:100%;display:flex;align-items:center;gap:12px;text-align:right;padding:10px;" onclick="openSpacesDetail('${escapeHtml(p.sku).replace(/'/g,"\\'")}','${escapeHtml(category).replace(/'/g,"\\'")}')">
+      ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+      <span style="flex:1;font-weight:700;">${escapeHtml(p.name)}</span>
+    </button>
+  `).join('');
+  document.getElementById('overlay-product-categories').classList.remove('show');
+  document.getElementById('overlay-spaces-products').classList.add('show');
+};
+document.getElementById('spaces-products-back').addEventListener('click', ()=>{
+  document.getElementById('overlay-spaces-products').classList.remove('show');
+  openProductCategories('spaces');
+});
+
+window.openSpacesDetail = async function(sku, category){
+  currentSpacesProduct = { sku, category };
+  const p = allProducts.find(pr=>pr.sku===sku);
+  document.getElementById('spaces-detail-title').textContent = p ? p.name : 'المساحة';
+  document.getElementById('spaces-methods-list').innerHTML = '<p class="hint">بيتحمل...</p>';
+  document.getElementById('overlay-spaces-products').classList.remove('show');
+  document.getElementById('overlay-spaces-detail').classList.add('show');
+
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  currentSpacesState = {method:null, entries:[]};
+  if(store){
+    try{
+      const res = await fetch(`${ACTION_LOG_ENDPOINT}?action=getSpacesForProduct&project=${encodeURIComponent(currentProject)}&storeCode=${encodeURIComponent(store.code)}&sku=${encodeURIComponent(sku)}`);
+      const data = await res.json();
+      if(data.ok && data.data){
+        currentSpacesState = { method: data.data.method || null, entries: data.data.entries || [] };
+      }
+    }catch(e){ /* هيبدأ فاضي عادي */ }
+  }
+  renderSpacesMethods();
+};
+document.getElementById('spaces-detail-back').addEventListener('click', ()=>{
+  document.getElementById('overlay-spaces-detail').classList.remove('show');
+  if(currentSpacesProduct) openSpacesProductsList(currentSpacesProduct.category);
+});
+
+function renderSpacesMethods(){
+  const box = document.getElementById('spaces-methods-list');
+  const lockedMethod = currentSpacesState.method;
+  box.innerHTML = SPACE_METHODS.map(m=>{
+    const isLocked = lockedMethod && lockedMethod !== m.key;
+    const entriesForMethod = lockedMethod===m.key ? currentSpacesState.entries : [];
+    const entriesHtml = entriesForMethod.map((entry, idx)=>`
+      <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:8px;padding:8px 10px;">
+        <span style="font-size:12px;font-weight:700;color:${entry.type==='competitor'?'var(--red)':'var(--primary-dark)'};">${entry.type==='competitor'?'صنف منافس':'صنفي'}</span>
+        <span style="flex:1;font-weight:700;">${escapeHtml(String(entry.value))}</span>
+        <button type="button" onclick="removeSpaceEntry('${m.key}',${idx})" style="background:var(--red);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;">✕</button>
+      </div>
+    `).join('');
+    return `
+      <div style="border:1.5px solid var(--line);border-radius:12px;padding:14px;${isLocked?'opacity:.4;':''}">
+        <div style="font-weight:800;margin-bottom:8px;">${m.label}</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">${entriesHtml}</div>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn-ghost" style="flex:1;font-size:12.5px;" ${isLocked?'disabled':''} onclick="addSpaceEntry('${m.key}','own')">+ خانة صنفي</button>
+          <button type="button" class="btn-ghost" style="flex:1;font-size:12.5px;" ${isLocked?'disabled':''} onclick="addSpaceEntry('${m.key}','competitor')">+ خانة للمنافس</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+window.removeSpaceEntry = function(methodKey, idx){
+  currentSpacesState.entries.splice(idx, 1);
+  if(currentSpacesState.entries.length === 0) currentSpacesState.method = null; // مفيش بيانات خالص = يرجع يقدر يختار أي طريقة تاني
+  renderSpacesMethods();
+};
+
+window.addSpaceEntry = function(methodKey, type){
+  const label = SPACE_METHODS.find(m=>m.key===methodKey).label;
+  const valStr = prompt(`اكتب رقم (${label})${methodKey==='meters'?' — بالمتر':''}:`);
+  if(valStr==null) return;
+  const val = Number(valStr);
+  if(isNaN(val) || valStr.trim()===''){
+    showToast('لازم تكتب رقم بس');
+    return;
+  }
+  const finalize = ()=>{
+    currentSpacesState.method = methodKey;
+    currentSpacesState.entries.push({type, value: val});
+    renderSpacesMethods();
+  };
+  if(methodKey==='meters' && val >= 10){
+    document.getElementById('spaces-meter-confirm-text').textContent = `كتبت ${val} متر لصنف واحد — متأكد إن ده القياس الفعلي؟`;
+    document.getElementById('overlay-spaces-meter-confirm').classList.add('show');
+    document.getElementById('spaces-meter-confirm-ok').onclick = ()=>{
+      document.getElementById('overlay-spaces-meter-confirm').classList.remove('show');
+      finalize();
+    };
+    document.getElementById('spaces-meter-edit').onclick = ()=>{
+      document.getElementById('overlay-spaces-meter-confirm').classList.remove('show');
+      addSpaceEntry(methodKey, type); // يفتحله يكتب تاني
+    };
+    return;
+  }
+  finalize();
+};
+
+document.getElementById('spaces-detail-save').addEventListener('click', async ()=>{
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  const p = allProducts.find(pr=>pr.sku===currentSpacesProduct.sku);
+  if(!store || !p) return;
+  const btn = document.getElementById('spaces-detail-save');
+  btn.disabled = true; btn.textContent = 'بيحفظ...';
+  try{
+    await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        kind:'submitSpaces', project: currentProject,
+        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+        storeCode: store.code, storeName: store.name,
+        category: currentSpacesProduct.category, name: p.name, sku: p.sku,
+        method: currentSpacesState.method, entries: currentSpacesState.entries,
+      }),
+    });
+    showToast('اتحفظت المساحة ✓');
+    document.getElementById('overlay-spaces-detail').classList.remove('show');
+    openSpacesProductsList(currentSpacesProduct.category);
+  }catch(e){
+    showToast('حصلت مشكلة، جرب تاني');
+  }
+  btn.disabled = false; btn.textContent = 'حفظ';
+});
+
+/* ===================== منسق: الأسعار ===================== */
+let currentPricesProduct = null;
+
+window.openPricesProductsList = function(category){
+  const products = activeProducts().filter(p => (p.category||'(بدون كاتيجوري)') === category);
+  document.getElementById('prices-products-title').textContent = category;
+  document.getElementById('prices-products-list').innerHTML = products.map(p=>`
+    <button class="pop-btn primary" style="width:100%;display:flex;align-items:center;gap:12px;text-align:right;padding:10px;" onclick="openPricesDetail('${escapeHtml(p.sku).replace(/'/g,"\\'")}','${escapeHtml(category).replace(/'/g,"\\'")}')">
+      ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+      <span style="flex:1;font-weight:700;">${escapeHtml(p.name)}</span>
+    </button>
+  `).join('');
+  document.getElementById('overlay-product-categories').classList.remove('show');
+  document.getElementById('overlay-prices-products').classList.add('show');
+};
+document.getElementById('prices-products-back').addEventListener('click', ()=>{
+  document.getElementById('overlay-prices-products').classList.remove('show');
+  openProductCategories('prices');
+});
+
+window.openPricesDetail = async function(sku, category){
+  currentPricesProduct = { sku, category };
+  const p = allProducts.find(pr=>pr.sku===sku);
+  document.getElementById('prices-detail-title').textContent = p ? p.name : 'السعر';
+  document.getElementById('prices-base-price-display').textContent = (p && p.price != null) ? p.price : 'مش متسجل سعر أساسي للمنتج ده';
+  document.getElementById('prices-has-offer-checkbox').checked = false;
+  document.getElementById('prices-offer-input-wrap').style.display = 'none';
+  document.getElementById('prices-offer-price-input').value = '';
+  document.getElementById('prices-offer-checkbox-label').textContent = 'سعر العرض';
+  document.getElementById('overlay-prices-products').classList.remove('show');
+  document.getElementById('overlay-prices-detail').classList.add('show');
+
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  if(store){
+    try{
+      const res = await fetch(`${ACTION_LOG_ENDPOINT}?action=getPriceForProduct&project=${encodeURIComponent(currentProject)}&storeCode=${encodeURIComponent(store.code)}&sku=${encodeURIComponent(sku)}`);
+      const data = await res.json();
+      if(data.ok && data.data && data.data.hasOffer){
+        document.getElementById('prices-has-offer-checkbox').checked = true;
+        document.getElementById('prices-offer-input-wrap').style.display = 'block';
+        document.getElementById('prices-offer-price-input').value = data.data.offerPrice != null ? data.data.offerPrice : '';
+        document.getElementById('prices-offer-checkbox-label').textContent = 'سعر العرض: ' + data.data.offerPrice;
+      }
+    }catch(e){ /* هيبدأ فاضي عادي */ }
+  }
+};
+document.getElementById('prices-detail-back').addEventListener('click', ()=>{
+  document.getElementById('overlay-prices-detail').classList.remove('show');
+  if(currentPricesProduct) openPricesProductsList(currentPricesProduct.category);
+});
+
+document.getElementById('prices-has-offer-checkbox').addEventListener('change', function(){
+  const wrap = document.getElementById('prices-offer-input-wrap');
+  const label = document.getElementById('prices-offer-checkbox-label');
+  if(this.checked){
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+    label.textContent = 'سعر العرض';
+    document.getElementById('prices-offer-price-input').value = '';
+  }
+});
+document.getElementById('prices-offer-price-input').addEventListener('input', function(){
+  const label = document.getElementById('prices-offer-checkbox-label');
+  label.textContent = this.value ? 'سعر العرض: ' + this.value : 'سعر العرض';
+});
+
+document.getElementById('prices-detail-save').addEventListener('click', async ()=>{
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  const p = allProducts.find(pr=>pr.sku===currentPricesProduct.sku);
+  if(!store || !p) return;
+  const hasOffer = document.getElementById('prices-has-offer-checkbox').checked;
+  const offerPriceStr = document.getElementById('prices-offer-price-input').value;
+  if(hasOffer && offerPriceStr.trim()===''){
+    showToast('اكتب سعر العرض الأول');
+    return;
+  }
+  const btn = document.getElementById('prices-detail-save');
+  btn.disabled = true; btn.textContent = 'بيحفظ...';
+  try{
+    await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        kind:'submitPrice', project: currentProject,
+        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+        storeCode: store.code, storeName: store.name,
+        category: currentPricesProduct.category, name: p.name, sku: p.sku,
+        basePrice: p.price, hasOffer, offerPrice: hasOffer ? Number(offerPriceStr) : null,
+      }),
+    });
+    showToast('اتحفظ السعر ✓');
+    document.getElementById('overlay-prices-detail').classList.remove('show');
+    openPricesProductsList(currentPricesProduct.category);
   }catch(e){
     showToast('حصلت مشكلة، جرب تاني');
   }
@@ -3031,6 +3390,7 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   document.getElementById('current-user-label').textContent = state.isAdmin
     ? 'admin — كل المنسقين'
     : state.repCode;
+  document.getElementById('stat-monthly-chip').style.display = state.isAdmin ? 'flex' : 'none';
 
   const showAdminEdit = state.isAdmin;
   ['btn-import','btn-bulk-zone'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = showAdminEdit ? 'flex' : 'none'; });
@@ -3814,13 +4174,9 @@ function updateStats(){
 }
 document.getElementById('search-box').addEventListener('input', renderMarkers);
 
-/* تذكير دوري لو المنسق لسه تحت الحد الأدنى المطلوب من الزيارات الشهرية */
+/* تذكير دوري لو المنسق لسه تحت الحد الأدنى المطلوب من الزيارات الشهرية — اتشال بناءً على طلب */
 function maybeRemindMonthlyMinimum(){
-  if(state.repCode==='ALL' || !state.repCode) return;
-  const monthly = totalMonthlyVisits(null);
-  if(monthly < MONTHLY_VISIT_MIN){
-    showToast(monthlyCapMessage(monthly));
-  }
+  return; // الميزة دي متوقفة، الرسالة مش هتظهر تاني
 }
 setInterval(maybeRemindMonthlyMinimum, 15 * 60 * 1000); // كل 15 دقيقة طول ما الأبليكيشن فاتح
 
@@ -3898,18 +4254,6 @@ document.getElementById('btn-add-mode').addEventListener('click', async ()=>{
     if(myLocation.approximate){
       showToast('⚠️ موقعك الحالي تقريبي (مش GPS حقيقي) ومينفعش يتاخد بيه محل. فعّل خدمة الموقع وجرب "موقعي" تاني.', true);
       logAlert('محاولة إضافة بلوكيشن تقريبي', 'الموقع كان تقريبي (IP) مش GPS حقيقي');
-      return;
-    }
-    const btn = document.getElementById('btn-add-mode');
-    const originalHTML = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span><span class="label">بيتأكد من النطاق...</span>';
-    const conflict = await checkTerritoryConflict(state.repCode, myLocation.lat, myLocation.lng);
-    btn.disabled = false;
-    btn.innerHTML = originalHTML;
-    if(conflict){
-      showToast(territoryConflictMessage(conflict), true);
-      logAlert('محاولة إضافة برا الزون', conflict.type==='outside_all' ? 'برا كل مناطق الإضافة الخاصة بيه' : territoryConflictMessage(conflict));
       return;
     }
     openStoreModal({mode:'add', lat: myLocation.lat, lng: myLocation.lng});
@@ -4110,13 +4454,6 @@ window.openReplaceFlow = async function(storeId){
     if(myLocation.approximate){
       showToast('⚠️ موقعك الحالي تقريبي (مش GPS حقيقي) ومينفعش يتاخد بيه محل. فعّل خدمة الموقع وجرب "موقعي" تاني.', true);
       logAlert('محاولة إضافة بلوكيشن تقريبي', 'الموقع كان تقريبي (IP) مش GPS حقيقي', store ? store.code : '', store ? store.name : '');
-      return;
-    }
-    showToast('بيتأكد من النطاق...');
-    const conflict = await checkTerritoryConflict(state.repCode, myLocation.lat, myLocation.lng);
-    if(conflict){
-      showToast(territoryConflictMessage(conflict), true);
-      logAlert('محاولة إضافة برا الزون', conflict.type==='outside_all' ? 'برا كل مناطق الإضافة الخاصة بيه' : territoryConflictMessage(conflict), store ? store.code : '', store ? store.name : '');
       return;
     }
     openStoreModal({mode:'replace', lat: myLocation.lat, lng: myLocation.lng, replacingFor:storeId});
@@ -4462,6 +4799,7 @@ async function openStoreModal({mode, lat, lng, replacingFor}){
   document.getElementById('store-energy-drinks').value = '';
   document.getElementById('store-add-reason').value = '';
   document.getElementById('store-channel').value = '';
+  document.getElementById('store-photo-checklist-section').style.display = state.isAdmin ? 'none' : 'block';
 
   document.getElementById('store-lat').readOnly = !state.isAdmin;
   document.getElementById('store-lng').readOnly = !state.isAdmin;
@@ -4544,13 +4882,15 @@ document.getElementById('store-save').addEventListener('click', async ()=>{
   const addReason = document.getElementById('store-add-reason').value.trim();
   const channel = document.getElementById('store-channel').value.trim();
 
-  if(currentStorePhotos.length===0){
-    showToast('لازم صورة واحدة على الأقل لواجهة المحل من الخارج');
-    return;
-  }
-  if(!strongStore || !jhinaFridge || !energyDrinks){
-    showToast('جاوب على أسئلة (محل قوي / ثلاجة جهينة / مشروبات الطاقة) الأول');
-    return;
+  if(!state.isAdmin){
+    if(currentStorePhotos.length===0){
+      showToast('لازم صورة واحدة على الأقل لواجهة المحل من الخارج');
+      return;
+    }
+    if(!strongStore || !jhinaFridge || !energyDrinks){
+      showToast('جاوب على أسئلة (محل قوي / ثلاجة جهينة / مشروبات الطاقة) الأول');
+      return;
+    }
   }
 
   let chain = '';
@@ -4608,26 +4948,6 @@ document.getElementById('store-save').addEventListener('click', async ()=>{
         return;
       }
       // قال "لأ، غيره" -> يكمل الإضافة عادي
-    }
-  }
-
-  if(!state.isAdmin){
-    const saveBtn = document.getElementById('store-save');
-    saveBtn.disabled = true;
-    const originalBtnText = saveBtn.textContent;
-    saveBtn.textContent = 'بيتأكد من النطاق...';
-    const conflict = await checkTerritoryConflict(state.repCode, lat, lng);
-    saveBtn.disabled = false;
-    saveBtn.textContent = originalBtnText;
-    if(conflict){
-      if(conflict.type === 'outside_all'){
-        showToast('⛔ انت خارج جميع مناطق الإضافة، برجاء إجراء الإضافة داخل النطاق الخاص بك', true);
-        logAlert('محاولة إضافة برا الزون', 'برا كل مناطق الإضافة الخاصة بيه', code, name);
-      } else {
-        showToast(territoryConflictMessage(conflict), true);
-        logAlert('محاولة إضافة برا الزون', territoryConflictMessage(conflict), code, name);
-      }
-      return;
     }
   }
 
