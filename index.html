@@ -324,8 +324,8 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   <div class="statbar">
     <div class="chip">الإجمالي <b id="stat-total">0</b></div>
     <div class="chip" id="stat-monthly-chip">زيارات الشهر <b id="stat-monthly">0</b> / 360-400</div>
-    <label class="chip" style="cursor:pointer;">
-      <input type="checkbox" id="toggle-all-stores" style="margin:0;">
+    <label class="chip" id="toggle-all-stores-label" style="cursor:pointer;">
+      <input type="checkbox" id="toggle-all-stores" checked style="margin:0;">
       إظهار كل المحلات
     </label>
     <label class="chip" style="gap:5px;display:none;">
@@ -695,13 +695,17 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   </div>
   <div class="fullpage-body">
     <div style="max-width:420px;margin:0 auto;">
-      <div class="field">
-        <label>العدد</label>
-        <input type="number" id="expiry-count-input" min="0" placeholder="0">
-      </div>
-      <div class="field">
-        <label>تاريخ الانتهاء</label>
-        <input type="date" id="expiry-date-input">
+      <div id="expiry-entries-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
+      <div style="border:1.5px solid var(--line);border-radius:12px;padding:14px;">
+        <div class="field">
+          <label>العدد</label>
+          <input type="number" id="expiry-count-input" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label>تاريخ الانتهاء</label>
+          <input type="text" id="expiry-date-input" placeholder="اختار التاريخ..." readonly style="cursor:pointer;background:#FBFCFB;">
+        </div>
+        <button type="button" class="btn-solid" style="width:100%;" onclick="addExpiryEntry()">+ ضيف</button>
       </div>
     </div>
   </div>
@@ -2055,10 +2059,17 @@ function renderClientListTab(){
         <div style="font-weight:700;">${escapeHtml(item.store.name)}</div>
         <div class="mono" style="font-size:12px;color:var(--ink-soft);">${escapeHtml(String(item.store.code))}</div>
       </div>
-      <span style="font-weight:700;color:var(--primary-dark);">${item.dist!=null ? formatDistance(item.dist) : '—'}</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-weight:700;color:var(--primary-dark);">${item.dist!=null ? formatDistance(item.dist) : '—'}</span>
+        <button type="button" class="btn-solid" style="padding:8px 14px;font-size:13px;" onclick="startVisitFromClientList('${item.store.id}')">بدء الزيارة</button>
+      </div>
     </div>
   `).join('');
 }
+window.startVisitFromClientList = function(storeId){
+  document.getElementById('overlay-client-list').classList.remove('show');
+  startVisitFlow(storeId);
+};
 
 function renderTodayTourTab(){
   const box = document.getElementById('client-list-tab-tour-body');
@@ -2082,7 +2093,10 @@ function renderTodayTourTab(){
           <div style="font-weight:700;">${escapeHtml(entry.storeName)}</div>
           <div class="mono" style="font-size:12px;color:var(--ink-soft);">${escapeHtml(String(entry.storeCode))}</div>
         </div>
-        <span style="font-weight:700;color:var(--primary-dark);">${dist!=null ? formatDistance(dist) : '—'}</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-weight:700;color:var(--primary-dark);">${dist!=null ? formatDistance(dist) : '—'}</span>
+          ${matchedStore ? `<button type="button" class="btn-solid" style="padding:8px 14px;font-size:13px;" onclick="startVisitFromClientList('${matchedStore.id}')">بدء الزيارة</button>` : ''}
+        </div>
       </div>`;
   }).join('');
 }
@@ -3760,6 +3774,8 @@ document.getElementById('prices-detail-save').addEventListener('click', async ()
 
 /* ===================== منسق: تواريخ الانتهاء ===================== */
 let currentExpiryProduct = null;
+let currentExpiryEntries = [];
+let expiryDatePickerInstance = null;
 
 window.openExpiryProductsList = function(category){
   const products = activeProducts().filter(p => (p.category||'(بدون كاتيجوري)') === category);
@@ -3784,33 +3800,60 @@ window.openExpiryDetail = async function(sku, category){
   document.getElementById('expiry-detail-title').textContent = p ? p.name : 'تاريخ الانتهاء';
   document.getElementById('expiry-count-input').value = '';
   document.getElementById('expiry-date-input').value = '';
+  currentExpiryEntries = [];
   document.getElementById('overlay-expiry-products').classList.remove('show');
   document.getElementById('overlay-expiry-detail').classList.add('show');
+
+  if(expiryDatePickerInstance) expiryDatePickerInstance.destroy();
+  expiryDatePickerInstance = flatpickr('#expiry-date-input', { dateFormat:'Y-m-d' });
 
   const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
   if(store){
     try{
       const res = await fetch(`${ACTION_LOG_ENDPOINT}?action=getExpiryForProduct&project=${encodeURIComponent(currentProject)}&storeCode=${encodeURIComponent(store.code)}&sku=${encodeURIComponent(sku)}`);
       const data = await res.json();
-      if(data.ok && data.data){
-        if(data.data.count != null) document.getElementById('expiry-count-input').value = data.data.count;
-        if(data.data.expiryDate) document.getElementById('expiry-date-input').value = data.data.expiryDate;
-      }
+      if(data.ok && data.data && Array.isArray(data.data.entries)) currentExpiryEntries = data.data.entries;
     }catch(e){ /* هيبدأ فاضي عادي */ }
   }
+  renderExpiryEntries();
 };
 document.getElementById('expiry-detail-back').addEventListener('click', ()=>{
   document.getElementById('overlay-expiry-detail').classList.remove('show');
   if(currentExpiryProduct) openExpiryProductsList(currentExpiryProduct.category);
 });
+function renderExpiryEntries(){
+  const box = document.getElementById('expiry-entries-list');
+  if(currentExpiryEntries.length===0){
+    box.innerHTML = '<p class="hint">لسه مفيش كميات مضافة.</p>';
+    return;
+  }
+  box.innerHTML = currentExpiryEntries.map((entry, idx)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:8px;padding:8px 10px;">
+      <span style="font-weight:700;">العدد: ${escapeHtml(String(entry.count))}</span>
+      <span class="mono" style="flex:1;color:var(--ink-soft);">${escapeHtml(entry.expiryDate)}</span>
+      <button type="button" onclick="removeExpiryEntry(${idx})" style="background:var(--red);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:13px;cursor:pointer;">✕</button>
+    </div>
+  `).join('');
+}
+window.removeExpiryEntry = function(idx){
+  currentExpiryEntries.splice(idx,1);
+  renderExpiryEntries();
+};
+window.addExpiryEntry = function(){
+  const countStr = document.getElementById('expiry-count-input').value;
+  const dateVal = document.getElementById('expiry-date-input').value;
+  const count = Number(countStr);
+  if(countStr.trim()==='' || isNaN(count) || count<0){ showToast('اكتب عدد صحيح'); return; }
+  if(!dateVal){ showToast('اختار تاريخ الانتهاء الأول'); return; }
+  currentExpiryEntries.push({count, expiryDate: dateVal});
+  document.getElementById('expiry-count-input').value = '';
+  document.getElementById('expiry-date-input').value = '';
+  renderExpiryEntries();
+};
 document.getElementById('expiry-detail-save').addEventListener('click', async ()=>{
   const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
   const p = allProducts.find(pr=>pr.sku===currentExpiryProduct.sku);
   if(!store || !p) return;
-  const countStr = document.getElementById('expiry-count-input').value;
-  const dateVal = document.getElementById('expiry-date-input').value;
-  if(countStr.trim()===''){ showToast('اكتب العدد الأول'); return; }
-  if(!dateVal){ showToast('اختار تاريخ الانتهاء الأول'); return; }
   const btn = document.getElementById('expiry-detail-save');
   btn.disabled = true; btn.textContent = 'بيحفظ...';
   try{
@@ -3821,10 +3864,10 @@ document.getElementById('expiry-detail-save').addEventListener('click', async ()
         repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
         storeCode: store.code, storeName: store.name,
         category: currentExpiryProduct.category, name: p.name, sku: p.sku,
-        count: Number(countStr), expiryDate: dateVal,
+        entries: currentExpiryEntries,
       }),
     });
-    showToast('اتحفظ تاريخ الانتهاء ✓');
+    showToast('اتحفظت تواريخ الانتهاء ✓');
     document.getElementById('overlay-expiry-detail').classList.remove('show');
     openExpiryProductsList(currentExpiryProduct.category);
   }catch(e){
@@ -4534,6 +4577,7 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
     ? (state.isViewOnlyAdmin ? 'admin001 — عرض فقط' : 'admin — كل المنسقين')
     : state.repCode;
   document.getElementById('stat-monthly-chip').style.display = state.isAdmin ? 'flex' : 'none';
+  document.getElementById('toggle-all-stores-label').style.display = state.isAdmin ? 'flex' : 'none';
 
   const fullAdminOnly = state.isAdmin && !state.isViewOnlyAdmin; // أزرار الإضافة/التعديل/الحذف كلها للأدمن الكامل بس
   document.getElementById('btn-add-mode').style.display = fullAdminOnly ? 'flex' : 'none';
