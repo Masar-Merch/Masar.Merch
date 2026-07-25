@@ -302,6 +302,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
           <button class="dd-item admin-only" id="btn-import" style="display:none;"><span>⇪</span> استيراد إكسل</button>
           <button class="dd-item admin-only" id="btn-manage-surveys" style="display:none;"><span>📋</span> إدارة الاستبيانات</button>
           <button class="dd-item admin-only" id="btn-reports" style="display:none;"><span>📊</span> التقارير</button>
+          <button class="dd-item admin-only" id="btn-open-filtering" style="display:none;"><span>🔍</span> الفلترة</button>
           <button class="dd-item admin-only" id="btn-create-project" style="display:none;"><span>🗂️</span> إنشاء مشروع جديد</button>
           <button class="dd-item admin-only" id="btn-open-coordinators-menu" style="display:none;"><span>👤</span> المنسقين ›</button>
           <button class="dd-item admin-only" id="btn-open-data-menu" style="display:none;color:var(--red);"><span>🗄️</span> البيانات والتصفية ›</button>
@@ -643,7 +644,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     <div style="max-width:420px;margin:0 auto;">
       <div class="field">
         <label>السعر الأساسي</label>
-        <div id="prices-base-price-display" style="font-size:22px;font-weight:800;color:var(--primary-dark);padding:10px 0;"></div>
+        <input type="number" id="prices-base-price-input" placeholder="0.00" step="0.01" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);font-size:18px;font-weight:700;">
       </div>
       <label style="display:flex;align-items:center;gap:10px;font-weight:700;margin:14px 0;cursor:pointer;">
         <input type="checkbox" id="prices-has-offer-checkbox" style="width:20px;height:20px;">
@@ -657,6 +658,74 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   </div>
   <div class="fullpage-footer">
     <button class="btn-solid" id="prices-detail-save" style="width:100%;">حفظ</button>
+  </div>
+</div>
+
+<!-- ============ منسق: تواريخ الانتهاء — قايمة منتجات كاتيجوري ============ -->
+<div class="fullpage" id="overlay-expiry-products">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="expiry-products-back">‹</button>
+    <h3 id="expiry-products-title">المنتجات</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div id="expiry-products-list" style="display:flex;flex-direction:column;gap:10px;max-width:520px;margin:0 auto;"></div>
+  </div>
+</div>
+
+<!-- ============ منسق: تفاصيل تاريخ انتهاء منتج ============ -->
+<div class="fullpage" id="overlay-expiry-detail">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="expiry-detail-back">‹</button>
+    <h3 id="expiry-detail-title">تاريخ الانتهاء</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div style="max-width:420px;margin:0 auto;">
+      <div class="field">
+        <label>العدد</label>
+        <input type="number" id="expiry-count-input" min="0" placeholder="0">
+      </div>
+      <div class="field">
+        <label>تاريخ الانتهاء</label>
+        <input type="date" id="expiry-date-input">
+      </div>
+    </div>
+  </div>
+  <div class="fullpage-footer">
+    <button class="btn-solid" id="expiry-detail-save" style="width:100%;">حفظ</button>
+  </div>
+</div>
+
+<!-- ============ منسق: مواد الدعاية ============ -->
+<div class="fullpage" id="overlay-promo-materials">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="promo-materials-back">‹</button>
+    <h3>مواد الدعاية</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div style="max-width:480px;margin:0 auto;">
+      <div id="promo-materials-entries" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
+      <div style="border:1.5px solid var(--line);border-radius:12px;padding:14px;">
+        <div class="field">
+          <label>اختار المادة</label>
+          <select id="promo-material-select" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);"></select>
+        </div>
+        <div class="field" id="promo-material-other-wrap" style="display:none;">
+          <label>اكتب اسم المادة</label>
+          <input type="text" id="promo-material-other-input" placeholder="اسم المادة">
+        </div>
+        <div class="field">
+          <label>العدد</label>
+          <input type="number" id="promo-material-count-input" min="1" placeholder="0">
+        </div>
+        <button type="button" class="btn-solid" style="width:100%;" onclick="addPromoMaterialEntry()">+ ضيف</button>
+      </div>
+    </div>
+  </div>
+  <div class="fullpage-footer">
+    <button class="btn-solid" id="promo-materials-save" style="width:100%;">حفظ</button>
   </div>
 </div>
 
@@ -704,14 +773,23 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     <span style="width:36px;"></span>
   </div>
   <div class="fullpage-body">
-    <div id="spaces-methods-list" style="display:flex;flex-direction:column;gap:14px;max-width:520px;margin:0 auto;"></div>
+    <div style="max-width:520px;margin:0 auto;">
+      <div class="field">
+        <label>طريقة القياس</label>
+        <select id="spaces-method-select" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);">
+          <option value="">اختار طريقة القياس...</option>
+        </select>
+        <p class="hint" id="spaces-method-locked-hint" style="display:none;color:var(--red);margin-top:6px;">في بيانات متسجلة بطريقة قياس واحدة، لازم تمسحها كلها الأول لو عايز تغيّر الطريقة.</p>
+      </div>
+      <div id="spaces-methods-list" style="display:flex;flex-direction:column;gap:14px;"></div>
+    </div>
   </div>
   <div class="fullpage-footer">
     <button class="btn-solid" id="spaces-detail-save" style="width:100%;">حفظ</button>
   </div>
 </div>
 
-<div class="overlay" id="overlay-spaces-meter-confirm">
+<div class="overlay" id="overlay-spaces-meter-confirm" style="z-index:4200;">
   <div class="modal" style="max-width:380px;">
     <h3>⚠️ متأكد من القياس؟</h3>
     <p class="m-sub" id="spaces-meter-confirm-text"></p>
@@ -744,6 +822,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   <div class="fullpage-body">
     <div id="visit-timer" style="text-align:center;font-size:42px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:var(--primary-dark);margin:10px 0 6px;">00:00:00</div>
     <p class="hint" id="visit-sub" style="text-align:center;">اختار أي قسم تملاه، بأي ترتيب.</p>
+    <p id="visit-zone-status" style="text-align:center;font-weight:700;font-size:13.5px;margin:2px 0 10px;color:var(--green);">✅ جوه نطاق المحل</p>
     <div id="visit-sections-list" style="display:flex;flex-direction:column;gap:12px;margin-top:18px;max-width:520px;margin-left:auto;margin-right:auto;"></div>
   </div>
   <div class="fullpage-footer">
@@ -792,9 +871,92 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     <h3>التقارير</h3>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
       <button class="pop-btn primary" style="width:100%;" onclick="openVisitsReport()">🚶 تقرير الزيارات</button>
+      <button class="pop-btn primary" style="width:100%;" onclick="openOpenVisitsScreen()">🔓 الزيارات المفتوحة</button>
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="reports-close">قفل</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ أدمن: الفلترة — اختيار القسم ============ -->
+<div class="fullpage" id="overlay-filter-section">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="filter-section-close">‹</button>
+    <h3>الفلترة</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <p class="hint" style="text-align:center;margin-bottom:14px;">اختار القسم اللي عايز تفلتر بياناته</p>
+    <div id="filter-section-list" style="display:flex;flex-direction:column;gap:10px;max-width:480px;margin:0 auto;"></div>
+  </div>
+</div>
+
+<!-- ============ أدمن: الفلترة — الفلاتر والنتائج ============ -->
+<div class="fullpage" id="overlay-filter-form">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="filter-form-back">‹</button>
+    <h3 id="filter-form-title">الفلاتر</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div style="max-width:480px;margin:0 auto;">
+      <div class="field">
+        <label>من تاريخ</label>
+        <input type="date" id="filter-date-from">
+      </div>
+      <div class="field">
+        <label>إلى تاريخ</label>
+        <input type="date" id="filter-date-to">
+      </div>
+      <div class="field">
+        <label>المنسق (اختياري)</label>
+        <select id="filter-rep-select"><option value="">كل المنسقين</option></select>
+      </div>
+      <div class="field">
+        <label>المحل/الفرع (اختياري، اكتب اسم أو كود)</label>
+        <input type="text" id="filter-store-search" placeholder="مثال: محمد أو 10234">
+      </div>
+      <div class="field" id="filter-category-wrap">
+        <label>الكاتيجوري (اختياري)</label>
+        <select id="filter-category-select"><option value="">كل الكاتيجوريز</option></select>
+      </div>
+      <div class="field" id="filter-product-wrap">
+        <label>المنتج (اختياري، اكتب اسم أو SKU)</label>
+        <input type="text" id="filter-product-search" placeholder="مثال: Tesla أو A01">
+      </div>
+      <button class="btn-solid" id="filter-search-btn" style="width:100%;">🔍 بحث</button>
+      <p class="hint" id="filter-results-status" style="margin-top:14px;"></p>
+    </div>
+  </div>
+  <div class="fullpage-footer" id="filter-download-footer" style="display:none;">
+    <button class="btn-solid" id="filter-download-btn" style="width:100%;">⬇️ تحميل Excel</button>
+  </div>
+</div>
+
+<div class="fullpage" id="overlay-open-visits">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="open-visits-close">‹</button>
+    <h3>الزيارات المفتوحة</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <p class="hint" id="open-visits-status">بيتحمّل...</p>
+    <div id="open-visits-list" style="display:flex;flex-direction:column;gap:10px;max-width:560px;margin:0 auto;"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay-exception-close">
+  <div class="modal" style="max-width:420px;">
+    <h3>Exception Close</h3>
+    <p class="m-sub" id="exception-close-visit-info"></p>
+    <div class="field">
+      <label>سبب الإغلاق الاستثنائي (إجباري، 5 حروف على الأقل)</label>
+      <textarea id="exception-close-reason" rows="3" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--line);"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="exception-close-cancel">إلغاء</button>
+      <button class="btn-danger" id="exception-close-confirm">تأكيد الإغلاق</button>
     </div>
   </div>
 </div>
@@ -897,21 +1059,6 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     <div class="field">
       <label>كود المحل (بيتحدد أوتوماتيك)</label>
       <input type="text" id="store-code" readonly style="background:#F0F0F0;color:var(--ink-soft);font-weight:700;">
-    </div>
-    <div class="field">
-      <label>نوع المحل</label>
-      <select id="store-type" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);">
-        <option value="">اختار النوع...</option>
-      </select>
-      <p class="hint" style="margin-top:6px;">نظام الزيارة (أسبوعي / أسبوع وأسبوع) بيتحدد أوتوماتيك حسب نوع المحل، مش هيتسألك عليه.</p>
-    </div>
-    <div class="field" id="chain-field" style="display:none;">
-      <label>سلسلة المحطة</label>
-      <select id="store-chain" style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);">
-        <option value="">اختار السلسلة...</option>
-      </select>
-      <input type="text" id="store-chain-other" placeholder="اكتب اسم السلسلة بالإنجليزي (إجباري)" style="display:none;width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#FBFCFB;font-size:15px;color:var(--ink);margin-top:8px;">
-      <p class="hint" style="margin-top:6px;">اسم السلسلة لازم يتكتب بحروف إنجليزي بس.</p>
     </div>
     <div class="latlng-row">
       <div class="field">
@@ -1094,6 +1241,8 @@ const GAS_STATION_CHAINS = [
 ];
 const NEARBY_CHAIN_CHECK_METERS = 250;
 const VISIT_GEOFENCE_METERS = 100; // نطاق بدء/إنهاء الزيارة حوالين المحل
+const VISIT_GRACE_PERIOD_MINUTES = 15; // مهلة السماح لو المنسق خرج برا النطاق قبل ما الزيارة تتقفل تلقائي
+const ZONE_ALERT_INTERVAL_SECONDS = 30; // تكرار التنبيه كل ما يفضل برا النطاق
 const VISIT_SECTIONS = [
   {id:'visit_availability', icon:'📦', label:'توافر المنتجات'},
   {id:'visit_inventory',    icon:'📋', label:'جرد المخزون'},
@@ -1101,6 +1250,7 @@ const VISIT_SECTIONS = [
   {id:'__survey__',         icon:'📝', label:'الاستبيان'},
   {id:'visit_expiry',       icon:'⏳', label:'تواريخ الانتهاء'},
   {id:'visit_spaces',       icon:'📐', label:'المساحات'},
+  {id:'visit_promo',        icon:'🎪', label:'مواد الدعاية'},
 ];
 // لازم تتطابق بالظبط مع تعريف نفس الاستبيانات المدمجة في الـ Apps Script (VISIT_SECTION_SURVEYS)
 const VISIT_SECTION_QUESTIONS = {
@@ -2075,6 +2225,171 @@ document.getElementById('visits-report-download').addEventListener('click', ()=>
   XLSX.writeFile(wb, `تقرير_الزيارات_${currentProject}_${new Date().toISOString().slice(0,10)}.xlsx`);
 });
 
+/* ---------- الزيارات المفتوحة + Exception Close ---------- */
+window.openOpenVisitsScreen = async function(){
+  document.getElementById('overlay-reports').classList.remove('show');
+  document.getElementById('overlay-open-visits').classList.add('show');
+  await refreshOpenVisitsList();
+};
+document.getElementById('open-visits-close').addEventListener('click', ()=>{
+  document.getElementById('overlay-open-visits').classList.remove('show');
+});
+
+/* ===================== أدمن: الفلترة الشاملة ===================== */
+const FILTER_SECTIONS = [
+  {key:'visits',       icon:'🚶', label:'الزيارات',        hasCategory:false},
+  {key:'availability', icon:'📦', label:'توافر المنتجات',   hasCategory:true},
+  {key:'inventory',    icon:'📋', label:'جرد المخزون',      hasCategory:true},
+  {key:'prices',       icon:'💰', label:'الأسعار',          hasCategory:true},
+  {key:'spaces',       icon:'📐', label:'المساحات',         hasCategory:true},
+  {key:'expiry',       icon:'⏳', label:'تواريخ الانتهاء',  hasCategory:true},
+];
+let currentFilterSection = null;
+let currentFilterResults = [];
+
+document.getElementById('btn-open-filtering').addEventListener('click', ()=>{
+  document.getElementById('filter-section-list').innerHTML = FILTER_SECTIONS.map(s=>`
+    <button class="pop-btn primary" style="width:100%;padding:14px 16px;font-size:15px;" onclick="openFilterForm('${s.key}')">${s.icon} ${s.label}</button>
+  `).join('');
+  document.getElementById('overlay-filter-section').classList.add('show');
+});
+document.getElementById('filter-section-close').addEventListener('click', ()=>{
+  document.getElementById('overlay-filter-section').classList.remove('show');
+});
+
+window.openFilterForm = function(sectionKey){
+  currentFilterSection = FILTER_SECTIONS.find(s=>s.key===sectionKey);
+  document.getElementById('filter-form-title').textContent = 'فلترة: ' + currentFilterSection.label;
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value = '';
+  document.getElementById('filter-store-search').value = '';
+  document.getElementById('filter-product-search').value = '';
+  document.getElementById('filter-results-status').textContent = '';
+  document.getElementById('filter-download-footer').style.display = 'none';
+  currentFilterResults = [];
+
+  const repSelect = document.getElementById('filter-rep-select');
+  repSelect.innerHTML = '<option value="">كل المنسقين</option>' +
+    allRepCodes().map(c => `<option value="${c}">${c}${repNamesMap[c]?' — '+repNamesMap[c]:''}</option>`).join('');
+
+  const showCategory = currentFilterSection.hasCategory;
+  document.getElementById('filter-category-wrap').style.display = showCategory ? 'block' : 'none';
+  document.getElementById('filter-product-wrap').style.display = showCategory ? 'block' : 'none';
+  if(showCategory){
+    const cats = uniqueCategories(allProducts());
+    document.getElementById('filter-category-select').innerHTML = '<option value="">كل الكاتيجوريز</option>' +
+      cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  }
+
+  document.getElementById('overlay-filter-section').classList.remove('show');
+  document.getElementById('overlay-filter-form').classList.add('show');
+};
+document.getElementById('filter-form-back').addEventListener('click', ()=>{
+  document.getElementById('overlay-filter-form').classList.remove('show');
+  document.getElementById('overlay-filter-section').classList.add('show');
+});
+
+document.getElementById('filter-search-btn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('filter-results-status');
+  statusEl.textContent = 'بيدوّر...';
+  document.getElementById('filter-download-footer').style.display = 'none';
+  const params = new URLSearchParams({
+    action: 'getFilteredData', project: currentProject, section: currentFilterSection.key,
+    dateFrom: document.getElementById('filter-date-from').value,
+    dateTo: document.getElementById('filter-date-to').value,
+    repCode: document.getElementById('filter-rep-select').value,
+    storeSearch: document.getElementById('filter-store-search').value.trim(),
+    category: currentFilterSection.hasCategory ? document.getElementById('filter-category-select').value : '',
+    productSearch: currentFilterSection.hasCategory ? document.getElementById('filter-product-search').value.trim() : '',
+  });
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT + '?' + params.toString());
+    const data = await res.json();
+    currentFilterResults = (data.ok && Array.isArray(data.rows)) ? data.rows : [];
+    if(currentFilterResults.length===0){
+      statusEl.textContent = 'مفيش نتائج مطابقة للفلاتر دي.';
+    } else {
+      statusEl.textContent = `عدد النتائج: ${currentFilterResults.length}`;
+      document.getElementById('filter-download-footer').style.display = 'block';
+    }
+  }catch(e){
+    statusEl.textContent = 'حصلت مشكلة في البحث، جرب تاني.';
+  }
+});
+document.getElementById('filter-download-btn').addEventListener('click', ()=>{
+  if(currentFilterResults.length===0) return;
+  const headers = Object.keys(currentFilterResults[0]);
+  const rows = [headers, ...currentFilterResults.map(r=>headers.map(h=>r[h]))];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, currentFilterSection.label);
+  XLSX.writeFile(wb, `فلترة_${currentFilterSection.label}_${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+
+async function refreshOpenVisitsList(){
+  const statusEl = document.getElementById('open-visits-status');
+  const listEl = document.getElementById('open-visits-list');
+  statusEl.textContent = 'بيتحمّل...';
+  listEl.innerHTML = '';
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT + '?action=getOpenVisits&project=' + encodeURIComponent(currentProject));
+    const data = await res.json();
+    const visits = (data.ok && Array.isArray(data.visits)) ? data.visits : [];
+    if(visits.length===0){
+      statusEl.textContent = 'مفيش زيارات مفتوحة دلوقتي ✓';
+      return;
+    }
+    statusEl.textContent = `عدد الزيارات المفتوحة: ${visits.length}`;
+    listEl.innerHTML = visits.map(v=>{
+      const started = v.startTime ? new Date(v.startTime).toLocaleString('ar-EG') : '';
+      return `
+        <div style="border:1.5px solid var(--line);border-radius:12px;padding:14px;">
+          <div style="font-weight:700;">${escapeHtml(v.storeName||'')} <span class="mono" style="color:var(--ink-soft);">(${escapeHtml(String(v.storeCode||''))})</span></div>
+          <div style="font-size:13px;color:var(--ink-soft);margin:4px 0;">المنسق: ${escapeHtml(v.coordinatorName||v.repCode||'')} — بدأت: ${escapeHtml(started)}</div>
+          <button class="btn-danger" style="width:100%;margin-top:6px;" onclick="openExceptionClose('${escapeHtml(String(v.visitId)).replace(/'/g,"\\'")}','${escapeHtml(v.storeName||'').replace(/'/g,"\\'")}','${escapeHtml(v.coordinatorName||v.repCode||'').replace(/'/g,"\\'")}')">⚠️ Exception Close</button>
+        </div>`;
+    }).join('');
+  }catch(e){
+    statusEl.textContent = 'حصلت مشكلة في تحميل الزيارات المفتوحة، جرب تاني.';
+  }
+}
+let currentExceptionCloseVisitId = null;
+window.openExceptionClose = function(visitId, storeName, coordinatorName){
+  currentExceptionCloseVisitId = visitId;
+  document.getElementById('exception-close-visit-info').textContent = `المحل: ${storeName} — المنسق: ${coordinatorName}`;
+  document.getElementById('exception-close-reason').value = '';
+  document.getElementById('overlay-exception-close').classList.add('show');
+};
+document.getElementById('exception-close-cancel').addEventListener('click', ()=>{
+  document.getElementById('overlay-exception-close').classList.remove('show');
+});
+document.getElementById('exception-close-confirm').addEventListener('click', async ()=>{
+  const reason = document.getElementById('exception-close-reason').value.trim();
+  if(reason.length < 5){
+    showToast('السبب لازم يكون 5 حروف على الأقل');
+    return;
+  }
+  const btn = document.getElementById('exception-close-confirm');
+  btn.disabled = true; btn.textContent = 'بيتنفذ...';
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        kind:'adminExceptionClose', project: currentProject,
+        visitId: currentExceptionCloseVisitId, reason, adminName: 'admin',
+      }),
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error('فشل الإغلاق');
+    showToast('اتقفلت الزيارة بنجاح ✓ (مسجلة في سجل المراجعة)');
+    document.getElementById('overlay-exception-close').classList.remove('show');
+    await refreshOpenVisitsList();
+  }catch(e){
+    showToast('حصلت مشكلة، جرب تاني');
+  }
+  btn.disabled = false; btn.textContent = 'تأكيد الإغلاق';
+});
+
 document.getElementById('btn-create-project').addEventListener('click', async ()=>{
   const nameInput = prompt('اكتب اسم المشروع الجديد (بالإنجليزي مفضّل، من غير مسافات، زي: newproject):');
   if(!nameInput) return;
@@ -2361,12 +2676,15 @@ window.startVisitFlow = function(storeId){
   state.currentVisitId = 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
   activeVisit = { storeId, visitId: state.currentVisitId, startTime: Date.now(), storeName: store.name, storeCode: store.code };
   answeredAvailabilityCategories = [];
+  hasEngagedWithAvailability = false;
+  availabilityDraftCache = {};
   fetch(ACTION_LOG_ENDPOINT + '?action=getAnsweredAvailabilityCategories&project=' + encodeURIComponent(currentProject) + '&storeCode=' + encodeURIComponent(store.code))
     .then(r=>r.json()).then(d=>{ if(d.ok && Array.isArray(d.categories)) answeredAvailabilityCategories = d.categories; }).catch(()=>{});
   document.getElementById('visit-title').textContent = 'زيارة: ' + store.name;
   renderVisitSections();
   document.getElementById('overlay-visit').classList.add('show');
   startVisitTimerDisplay();
+  startZoneMonitoring(store);
 
   fetch(ACTION_LOG_ENDPOINT, {
     method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -2382,6 +2700,129 @@ window.startVisitFlow = function(storeId){
     }),
   }).catch(()=>{});
 };
+
+/* ===================== مراقبة نطاق الزيارة (Zone Monitoring) ===================== */
+let visitZoneState = null; // {status:'inside'|'outside'|'grace', exitTime, lastAlertTime}
+let zoneMonitorInterval = null;
+let zoneAutoCloseTimer = null;
+let zoneMonitorStore = null;
+
+function startZoneMonitoring(store){
+  stopZoneMonitoring();
+  zoneMonitorStore = store;
+  visitZoneState = {status:'inside', exitTime:null, lastAlertTime:0};
+  updateZoneStatusUI();
+  zoneMonitorInterval = setInterval(checkZoneStatus, 10000); // فحص كل 10 ثواني
+}
+function stopZoneMonitoring(){
+  if(zoneMonitorInterval){ clearInterval(zoneMonitorInterval); zoneMonitorInterval = null; }
+  if(zoneAutoCloseTimer){ clearTimeout(zoneAutoCloseTimer); zoneAutoCloseTimer = null; }
+  visitZoneState = null;
+  zoneMonitorStore = null;
+}
+function sendZoneAlert(message){
+  showToast(message, true);
+  try{ if(navigator.vibrate) navigator.vibrate([300,150,300,150,300]); }catch(e){}
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    osc.frequency.value = 880;
+    osc.connect(ctx.destination);
+    osc.start(); setTimeout(()=>{ osc.stop(); ctx.close(); }, 350);
+  }catch(e){}
+}
+function checkZoneStatus(){
+  if(!activeVisit || !zoneMonitorStore || !visitZoneState) return;
+  if(!myLocation){ return; }
+  const dist = distanceToStoreMeters(zoneMonitorStore);
+  const isInside = dist <= VISIT_GEOFENCE_METERS;
+
+  if(isInside){
+    if(visitZoneState.status !== 'inside'){
+      visitZoneState = {status:'inside', exitTime:null, lastAlertTime:0};
+      if(zoneAutoCloseTimer){ clearTimeout(zoneAutoCloseTimer); zoneAutoCloseTimer = null; }
+      showToast('✅ رجعت جوه نطاق المحل');
+    }
+    updateZoneStatusUI();
+    return;
+  }
+
+  // برا النطاق
+  if(visitZoneState.status === 'inside'){
+    visitZoneState = {status:'outside', exitTime: Date.now(), lastAlertTime: 0};
+    handleZoneExit(dist);
+  } else {
+    const now = Date.now();
+    if(now - visitZoneState.lastAlertTime >= ZONE_ALERT_INTERVAL_SECONDS*1000){
+      visitZoneState.lastAlertTime = now;
+      handleZoneExit(dist);
+    }
+  }
+  updateZoneStatusUI();
+
+  // بعد مهلة السماح كاملة برا النطاق، إغلاق تلقائي
+  if(!zoneAutoCloseTimer){
+    const elapsedMs = Date.now() - visitZoneState.exitTime;
+    const remainingMs = (VISIT_GRACE_PERIOD_MINUTES*60000) - elapsedMs;
+    if(remainingMs <= 0){
+      performAutoClose();
+    } else {
+      zoneAutoCloseTimer = setTimeout(()=>{
+        if(visitZoneState && visitZoneState.status === 'outside') performAutoClose();
+      }, remainingMs);
+    }
+  }
+}
+function handleZoneExit(dist){
+  sendZoneAlert(`🔴 خرجت من نطاق المحل! الزيارة لسه مفتوحة (على بعد ${Math.round(dist)} متر). ارجع عشان تقفلها، أو هتتقفل تلقائي بعد ${VISIT_GRACE_PERIOD_MINUTES} دقيقة.`);
+  if(zoneMonitorStore){
+    fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        kind:'logZoneAlert', project: currentProject,
+        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+        storeCode: zoneMonitorStore.code, storeName: zoneMonitorStore.name,
+        alertType: 'خروج من النطاق', distance: Math.round(dist),
+        lat: myLocation ? myLocation.lat : null, lng: myLocation ? myLocation.lng : null,
+      }),
+    }).catch(()=>{});
+  }
+}
+function updateZoneStatusUI(){
+  const el = document.getElementById('visit-zone-status');
+  if(!el || !visitZoneState) return;
+  if(visitZoneState.status === 'inside'){
+    el.textContent = '✅ جوه نطاق المحل';
+    el.style.color = 'var(--green)';
+  } else {
+    const elapsedMs = Date.now() - visitZoneState.exitTime;
+    const remainingMin = Math.max(0, Math.ceil((VISIT_GRACE_PERIOD_MINUTES*60000 - elapsedMs)/60000));
+    el.textContent = `🔴 برا النطاق — هتتقفل تلقائي بعد ${remainingMin} دقيقة لو ما رجعتش`;
+    el.style.color = 'var(--red)';
+  }
+}
+function performAutoClose(){
+  if(!activeVisit || !zoneMonitorStore) return;
+  const store = zoneMonitorStore;
+  logAction('إنهاء زيارة (تلقائي - خروج من النطاق)', store.code, store.name, '');
+  fetch(ACTION_LOG_ENDPOINT, {
+    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({
+      kind:'logVisit', event:'end', project: currentProject,
+      visitId: state.currentVisitId,
+      repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+      storeName: store.name, storeCode: store.code,
+      lat: store.lat, lng: store.lng,
+      deviceFingerprint: getDeviceFingerprint(), channel: store.channel || '',
+      closureType: 'auto_closed',
+    }),
+  }).catch(()=>{});
+  sendZoneAlert(`⛔ اتقفلت الزيارة تلقائيًا لأنك فضلت برا نطاق "${store.name}" أكتر من ${VISIT_GRACE_PERIOD_MINUTES} دقيقة`);
+  activeVisit = null;
+  stopVisitTimerDisplay();
+  stopZoneMonitoring();
+  document.getElementById('overlay-visit').classList.remove('show');
+}
 
 function renderVisitSections(){
   const box = document.getElementById('visit-sections-list');
@@ -2415,14 +2856,21 @@ window.openVisitSection = function(sectionId){
     openProductCategories('prices');
     return;
   }
-  // باقي الأقسام (تواريخ الانتهاء) لسه استبيانات مدمجة ثابتة (نص + صور)
-  openSurveyFillForm(sectionId);
+  if(sectionId === 'visit_expiry'){
+    openProductCategories('expiry');
+    return;
+  }
+  if(sectionId === 'visit_promo'){
+    openPromoMaterialsScreen();
+    return;
+  }
 };
 
-/* ===================== منسق: توافر المنتجات + جرد المخزون + المساحات + الأسعار ===================== */
-let productScreenMode = null; // 'availability' | 'inventory' | 'spaces' | 'prices'
+/* ===================== منسق: توافر المنتجات + جرد المخزون + المساحات + الأسعار + تواريخ الانتهاء ===================== */
+let productScreenMode = null; // 'availability' | 'inventory' | 'spaces' | 'prices' | 'expiry'
 let productScreenSelectedCategory = null;
 let answeredAvailabilityCategories = []; // كاتيجوريز اتجاوب عليها في الزيارة الحالية (من السيرفر)
+let hasEngagedWithAvailability = false; // بمجرد ما يفتح ويحفظ أي كاتيجوري من توافر الأصناف، يبقى إجباري يخلص الباقي
 
 function openProductCategories(mode){
   productScreenMode = mode;
@@ -2431,7 +2879,8 @@ function openProductCategories(mode){
   document.getElementById('product-categories-title').textContent =
     mode==='availability' ? 'توافر المنتجات — الكاتيجوري' :
     mode==='inventory' ? 'جرد المخزون — الكاتيجوري' :
-    mode==='prices' ? 'الأسعار — الكاتيجوري' : 'المساحات — الكاتيجوري';
+    mode==='prices' ? 'الأسعار — الكاتيجوري' :
+    mode==='expiry' ? 'تواريخ الانتهاء — الكاتيجوري' : 'المساحات — الكاتيجوري';
   const box = document.getElementById('product-categories-list');
   if(cats.length===0){
     box.innerHTML = '<p class="hint">مفيش كاتيجوريز متاحة دلوقتي.</p>';
@@ -2459,7 +2908,11 @@ window.toggleAvailabilityLabel = function(input){
   } else {
     label.textContent = 'غير متواجد'; label.style.color = 'var(--red)';
   }
+  if(!availabilityDraftCache[productScreenSelectedCategory]) availabilityDraftCache[productScreenSelectedCategory] = {};
+  availabilityDraftCache[productScreenSelectedCategory][input.dataset.sku] = input.checked;
 };
+
+let availabilityDraftCache = {}; // {category: {sku: true/false}} — بيتصفّر مع كل زيارة جديدة، بيحافظ على آخر حالة اختارها المنسق حتى لو ماحفظش لسه
 
 window.openCategoryProducts = function(category){
   productScreenSelectedCategory = category;
@@ -2471,22 +2924,29 @@ window.openCategoryProducts = function(category){
     openPricesProductsList(category);
     return;
   }
+  if(productScreenMode === 'expiry'){
+    openExpiryProductsList(category);
+    return;
+  }
   if(productScreenMode === 'availability'){
     const products = activeProducts().filter(p => (p.category||'(بدون كاتيجوري)') === category);
+    const draft = availabilityDraftCache[category] || {};
     document.getElementById('availability-products-title').textContent = category;
-    document.getElementById('availability-products-list').innerHTML = products.map((p,i)=>`
+    document.getElementById('availability-products-list').innerHTML = products.map((p,i)=>{
+      const isAvailable = draft[p.sku] != null ? draft[p.sku] : true;
+      return `
       <div style="display:flex;align-items:center;gap:12px;background:var(--panel);border:1.5px solid var(--line);border-radius:12px;padding:12px;">
         ${p.image ? `<img src="${p.image}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;">` : `<div style="width:52px;height:52px;border-radius:10px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-size:22px;">📦</div>`}
         <div style="flex:1;font-weight:700;">${escapeHtml(p.name)}</div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
           <label class="avail-toggle">
-            <input type="checkbox" data-sku="${escapeHtml(p.sku)}" data-name="${escapeHtml(p.name)}" checked onchange="toggleAvailabilityLabel(this)">
+            <input type="checkbox" data-sku="${escapeHtml(p.sku)}" data-name="${escapeHtml(p.name)}" ${isAvailable?'checked':''} onchange="toggleAvailabilityLabel(this)">
             <span class="avail-toggle-slider"></span>
           </label>
-          <span class="avail-toggle-label" style="font-size:11px;font-weight:700;color:var(--green);">متواجد</span>
+          <span class="avail-toggle-label" style="font-size:11px;font-weight:700;color:${isAvailable?'var(--green)':'var(--red)'};">${isAvailable?'متواجد':'غير متواجد'}</span>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
     document.getElementById('overlay-product-categories').classList.remove('show');
     document.getElementById('overlay-availability-products').classList.add('show');
   } else {
@@ -2526,6 +2986,7 @@ document.getElementById('availability-products-save').addEventListener('click', 
       }),
     });
     if(!answeredAvailabilityCategories.includes(productScreenSelectedCategory)) answeredAvailabilityCategories.push(productScreenSelectedCategory);
+    hasEngagedWithAvailability = true;
     showToast('اتحفظ ✓');
     document.getElementById('overlay-availability-products').classList.remove('show');
     openProductCategories('availability');
@@ -2614,6 +3075,10 @@ window.openSpacesDetail = async function(sku, category){
   document.getElementById('overlay-spaces-products').classList.remove('show');
   document.getElementById('overlay-spaces-detail').classList.add('show');
 
+  const methodSelect = document.getElementById('spaces-method-select');
+  methodSelect.innerHTML = '<option value="">اختار طريقة القياس...</option>' +
+    SPACE_METHODS.map(m=>`<option value="${m.key}">${m.label}</option>`).join('');
+
   const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
   currentSpacesState = {method:null, entries:[]};
   if(store){
@@ -2625,55 +3090,78 @@ window.openSpacesDetail = async function(sku, category){
       }
     }catch(e){ /* هيبدأ فاضي عادي */ }
   }
+  methodSelect.value = currentSpacesState.method || '';
   renderSpacesMethods();
 };
 document.getElementById('spaces-detail-back').addEventListener('click', ()=>{
   document.getElementById('overlay-spaces-detail').classList.remove('show');
   if(currentSpacesProduct) openSpacesProductsList(currentSpacesProduct.category);
 });
+document.getElementById('spaces-method-select').addEventListener('change', function(){
+  if(currentSpacesState.entries.length > 0){
+    // في بيانات متسجلة بالفعل، مش هنسيبه يغيّر الطريقة من غير ما يمسحها الأول
+    this.value = currentSpacesState.method || '';
+    showToast('امسح البيانات الحالية الأول لو عايز تغيّر طريقة القياس');
+    return;
+  }
+  currentSpacesState.method = this.value || null;
+  renderSpacesMethods();
+});
 
 function renderSpacesMethods(){
   const box = document.getElementById('spaces-methods-list');
-  const lockedMethod = currentSpacesState.method;
-  box.innerHTML = SPACE_METHODS.map(m=>{
-    const isLocked = lockedMethod && lockedMethod !== m.key;
-    const entriesForMethod = lockedMethod===m.key ? currentSpacesState.entries : [];
-    const entriesHtml = entriesForMethod.map((entry, idx)=>`
-      <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:8px;padding:8px 10px;">
-        <span style="font-size:12px;font-weight:700;color:${entry.type==='competitor'?'var(--red)':'var(--primary-dark)'};">${entry.type==='competitor'?'صنف منافس':'صنفي'}</span>
-        <span style="flex:1;font-weight:700;">${escapeHtml(String(entry.value))}</span>
-        <button type="button" onclick="removeSpaceEntry('${m.key}',${idx})" style="background:var(--red);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;">✕</button>
+  const hintEl = document.getElementById('spaces-method-locked-hint');
+  const methodSelect = document.getElementById('spaces-method-select');
+  const method = currentSpacesState.method;
+  hintEl.style.display = (method && currentSpacesState.entries.length>0) ? 'block' : 'none';
+  methodSelect.disabled = !!(method && currentSpacesState.entries.length>0);
+
+  if(!method){
+    box.innerHTML = '<p class="hint">اختار طريقة القياس فوق الأول عشان تقدر تضيف قيم.</p>';
+    return;
+  }
+  const m = SPACE_METHODS.find(x=>x.key===method);
+  const entriesHtml = currentSpacesState.entries.map((entry, idx)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:8px;padding:8px 10px;">
+      <span style="font-size:12px;font-weight:700;color:${entry.type==='competitor'?'var(--red)':'var(--primary-dark)'};min-width:70px;">${entry.type==='competitor'?'صنف منافس':'صنفي'}</span>
+      <span style="flex:1;font-weight:700;">${escapeHtml(String(entry.value))}</span>
+      <button type="button" onclick="removeSpaceEntry(${idx})" style="background:var(--red);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:13px;cursor:pointer;">✕</button>
+    </div>
+  `).join('');
+  box.innerHTML = `
+    <div style="border:1.5px solid var(--line);border-radius:12px;padding:14px;">
+      <div style="font-weight:800;margin-bottom:10px;">${m.label}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">${entriesHtml || '<p class="hint">لسه مفيش قيم مضافة.</p>'}</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="spaces-new-value-input" placeholder="اكتب رقم" style="flex:1;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);">
+        <select id="spaces-new-value-type" style="padding:10px 8px;border-radius:9px;border:1.5px solid var(--line);">
+          <option value="own">صنفي</option>
+          <option value="competitor">صنف منافس</option>
+        </select>
+        <button type="button" class="btn-solid" style="padding:10px 16px;" onclick="confirmAddSpaceEntry()">+ ضيف</button>
       </div>
-    `).join('');
-    return `
-      <div style="border:1.5px solid var(--line);border-radius:12px;padding:14px;${isLocked?'opacity:.4;':''}">
-        <div style="font-weight:800;margin-bottom:8px;">${m.label}</div>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">${entriesHtml}</div>
-        <div style="display:flex;gap:8px;">
-          <button type="button" class="btn-ghost" style="flex:1;font-size:12.5px;" ${isLocked?'disabled':''} onclick="addSpaceEntry('${m.key}','own')">+ خانة صنفي</button>
-          <button type="button" class="btn-ghost" style="flex:1;font-size:12.5px;" ${isLocked?'disabled':''} onclick="addSpaceEntry('${m.key}','competitor')">+ خانة للمنافس</button>
-        </div>
-      </div>`;
-  }).join('');
+    </div>`;
 }
 
-window.removeSpaceEntry = function(methodKey, idx){
+window.removeSpaceEntry = function(idx){
   currentSpacesState.entries.splice(idx, 1);
   if(currentSpacesState.entries.length === 0) currentSpacesState.method = null; // مفيش بيانات خالص = يرجع يقدر يختار أي طريقة تاني
+  document.getElementById('spaces-method-select').value = currentSpacesState.method || '';
   renderSpacesMethods();
 };
 
-window.addSpaceEntry = function(methodKey, type){
-  const label = SPACE_METHODS.find(m=>m.key===methodKey).label;
-  const valStr = prompt(`اكتب رقم (${label})${methodKey==='meters'?' — بالمتر':''}:`);
-  if(valStr==null) return;
+window.confirmAddSpaceEntry = function(){
+  const input = document.getElementById('spaces-new-value-input');
+  const typeSelect = document.getElementById('spaces-new-value-type');
+  const valStr = input.value;
   const val = Number(valStr);
-  if(isNaN(val) || valStr.trim()===''){
+  if(valStr.trim()==='' || isNaN(val)){
     showToast('لازم تكتب رقم بس');
     return;
   }
+  const methodKey = currentSpacesState.method;
+  const type = typeSelect.value;
   const finalize = ()=>{
-    currentSpacesState.method = methodKey;
     currentSpacesState.entries.push({type, value: val});
     renderSpacesMethods();
   };
@@ -2686,7 +3174,7 @@ window.addSpaceEntry = function(methodKey, type){
     };
     document.getElementById('spaces-meter-edit').onclick = ()=>{
       document.getElementById('overlay-spaces-meter-confirm').classList.remove('show');
-      addSpaceEntry(methodKey, type); // يفتحله يكتب تاني
+      input.focus();
     };
     return;
   }
@@ -2743,7 +3231,7 @@ window.openPricesDetail = async function(sku, category){
   currentPricesProduct = { sku, category };
   const p = allProducts.find(pr=>pr.sku===sku);
   document.getElementById('prices-detail-title').textContent = p ? p.name : 'السعر';
-  document.getElementById('prices-base-price-display').textContent = (p && p.price != null) ? p.price : 'مش متسجل سعر أساسي للمنتج ده';
+  document.getElementById('prices-base-price-input').value = '';
   document.getElementById('prices-has-offer-checkbox').checked = false;
   document.getElementById('prices-offer-input-wrap').style.display = 'none';
   document.getElementById('prices-offer-price-input').value = '';
@@ -2756,11 +3244,14 @@ window.openPricesDetail = async function(sku, category){
     try{
       const res = await fetch(`${ACTION_LOG_ENDPOINT}?action=getPriceForProduct&project=${encodeURIComponent(currentProject)}&storeCode=${encodeURIComponent(store.code)}&sku=${encodeURIComponent(sku)}`);
       const data = await res.json();
-      if(data.ok && data.data && data.data.hasOffer){
-        document.getElementById('prices-has-offer-checkbox').checked = true;
-        document.getElementById('prices-offer-input-wrap').style.display = 'block';
-        document.getElementById('prices-offer-price-input').value = data.data.offerPrice != null ? data.data.offerPrice : '';
-        document.getElementById('prices-offer-checkbox-label').textContent = 'سعر العرض: ' + data.data.offerPrice;
+      if(data.ok && data.data){
+        if(data.data.basePrice != null) document.getElementById('prices-base-price-input').value = data.data.basePrice;
+        if(data.data.hasOffer){
+          document.getElementById('prices-has-offer-checkbox').checked = true;
+          document.getElementById('prices-offer-input-wrap').style.display = 'block';
+          document.getElementById('prices-offer-price-input').value = data.data.offerPrice != null ? data.data.offerPrice : '';
+          document.getElementById('prices-offer-checkbox-label').textContent = 'سعر العرض: ' + data.data.offerPrice;
+        }
       }
     }catch(e){ /* هيبدأ فاضي عادي */ }
   }
@@ -2790,6 +3281,11 @@ document.getElementById('prices-detail-save').addEventListener('click', async ()
   const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
   const p = allProducts.find(pr=>pr.sku===currentPricesProduct.sku);
   if(!store || !p) return;
+  const basePriceStr = document.getElementById('prices-base-price-input').value;
+  if(basePriceStr.trim()===''){
+    showToast('اكتب السعر الأساسي الأول');
+    return;
+  }
   const hasOffer = document.getElementById('prices-has-offer-checkbox').checked;
   const offerPriceStr = document.getElementById('prices-offer-price-input').value;
   if(hasOffer && offerPriceStr.trim()===''){
@@ -2806,12 +3302,173 @@ document.getElementById('prices-detail-save').addEventListener('click', async ()
         repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
         storeCode: store.code, storeName: store.name,
         category: currentPricesProduct.category, name: p.name, sku: p.sku,
-        basePrice: p.price, hasOffer, offerPrice: hasOffer ? Number(offerPriceStr) : null,
+        basePrice: Number(basePriceStr), hasOffer, offerPrice: hasOffer ? Number(offerPriceStr) : null,
       }),
     });
     showToast('اتحفظ السعر ✓');
     document.getElementById('overlay-prices-detail').classList.remove('show');
     openPricesProductsList(currentPricesProduct.category);
+  }catch(e){
+    showToast('حصلت مشكلة، جرب تاني');
+  }
+  btn.disabled = false; btn.textContent = 'حفظ';
+});
+
+/* ===================== منسق: تواريخ الانتهاء ===================== */
+let currentExpiryProduct = null;
+
+window.openExpiryProductsList = function(category){
+  const products = activeProducts().filter(p => (p.category||'(بدون كاتيجوري)') === category);
+  document.getElementById('expiry-products-title').textContent = category;
+  document.getElementById('expiry-products-list').innerHTML = products.map(p=>`
+    <button class="pop-btn primary" style="width:100%;display:flex;align-items:center;gap:12px;text-align:right;padding:10px;" onclick="openExpiryDetail('${escapeHtml(p.sku).replace(/'/g,"\\'")}','${escapeHtml(category).replace(/'/g,"\\'")}')">
+      ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+      <span style="flex:1;font-weight:700;">${escapeHtml(p.name)}</span>
+    </button>
+  `).join('');
+  document.getElementById('overlay-product-categories').classList.remove('show');
+  document.getElementById('overlay-expiry-products').classList.add('show');
+};
+document.getElementById('expiry-products-back').addEventListener('click', ()=>{
+  document.getElementById('overlay-expiry-products').classList.remove('show');
+  openProductCategories('expiry');
+});
+
+window.openExpiryDetail = async function(sku, category){
+  currentExpiryProduct = { sku, category };
+  const p = allProducts.find(pr=>pr.sku===sku);
+  document.getElementById('expiry-detail-title').textContent = p ? p.name : 'تاريخ الانتهاء';
+  document.getElementById('expiry-count-input').value = '';
+  document.getElementById('expiry-date-input').value = '';
+  document.getElementById('overlay-expiry-products').classList.remove('show');
+  document.getElementById('overlay-expiry-detail').classList.add('show');
+
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  if(store){
+    try{
+      const res = await fetch(`${ACTION_LOG_ENDPOINT}?action=getExpiryForProduct&project=${encodeURIComponent(currentProject)}&storeCode=${encodeURIComponent(store.code)}&sku=${encodeURIComponent(sku)}`);
+      const data = await res.json();
+      if(data.ok && data.data){
+        if(data.data.count != null) document.getElementById('expiry-count-input').value = data.data.count;
+        if(data.data.expiryDate) document.getElementById('expiry-date-input').value = data.data.expiryDate;
+      }
+    }catch(e){ /* هيبدأ فاضي عادي */ }
+  }
+};
+document.getElementById('expiry-detail-back').addEventListener('click', ()=>{
+  document.getElementById('overlay-expiry-detail').classList.remove('show');
+  if(currentExpiryProduct) openExpiryProductsList(currentExpiryProduct.category);
+});
+document.getElementById('expiry-detail-save').addEventListener('click', async ()=>{
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  const p = allProducts.find(pr=>pr.sku===currentExpiryProduct.sku);
+  if(!store || !p) return;
+  const countStr = document.getElementById('expiry-count-input').value;
+  const dateVal = document.getElementById('expiry-date-input').value;
+  if(countStr.trim()===''){ showToast('اكتب العدد الأول'); return; }
+  if(!dateVal){ showToast('اختار تاريخ الانتهاء الأول'); return; }
+  const btn = document.getElementById('expiry-detail-save');
+  btn.disabled = true; btn.textContent = 'بيحفظ...';
+  try{
+    await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        kind:'submitExpiry', project: currentProject,
+        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+        storeCode: store.code, storeName: store.name,
+        category: currentExpiryProduct.category, name: p.name, sku: p.sku,
+        count: Number(countStr), expiryDate: dateVal,
+      }),
+    });
+    showToast('اتحفظ تاريخ الانتهاء ✓');
+    document.getElementById('overlay-expiry-detail').classList.remove('show');
+    openExpiryProductsList(currentExpiryProduct.category);
+  }catch(e){
+    showToast('حصلت مشكلة، جرب تاني');
+  }
+  btn.disabled = false; btn.textContent = 'حفظ';
+});
+
+/* ===================== منسق: مواد الدعاية ===================== */
+const PROMO_MATERIALS_LIST = ['استاند عادي','استاند ذو وجهين','بوديوم خشبي','بوديوم حديد','فلور','جندولة','شيلف ستريب','باراسايت','كاتمان','كاشير تيشك ازت'];
+let currentPromoEntries = [];
+
+window.openPromoMaterialsScreen = async function(){
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  const select = document.getElementById('promo-material-select');
+  select.innerHTML = PROMO_MATERIALS_LIST.map(m=>`<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('') + '<option value="__other__">أخرى</option>';
+  document.getElementById('promo-material-other-wrap').style.display = 'none';
+  document.getElementById('promo-material-other-input').value = '';
+  document.getElementById('promo-material-count-input').value = '';
+  currentPromoEntries = [];
+
+  if(store){
+    try{
+      const res = await fetch(`${ACTION_LOG_ENDPOINT}?action=getPromoMaterialsForStore&project=${encodeURIComponent(currentProject)}&storeCode=${encodeURIComponent(store.code)}`);
+      const data = await res.json();
+      if(data.ok && Array.isArray(data.items)) currentPromoEntries = data.items;
+    }catch(e){ /* هيبدأ فاضي عادي */ }
+  }
+  renderPromoMaterialsEntries();
+  document.getElementById('overlay-visit').classList.remove('show');
+  document.getElementById('overlay-promo-materials').classList.add('show');
+};
+document.getElementById('promo-materials-back').addEventListener('click', ()=>{
+  document.getElementById('overlay-promo-materials').classList.remove('show');
+  document.getElementById('overlay-visit').classList.add('show');
+});
+document.getElementById('promo-material-select').addEventListener('change', function(){
+  document.getElementById('promo-material-other-wrap').style.display = this.value==='__other__' ? 'block' : 'none';
+});
+function renderPromoMaterialsEntries(){
+  const box = document.getElementById('promo-materials-entries');
+  if(currentPromoEntries.length===0){
+    box.innerHTML = '<p class="hint">لسه مفيش مواد مضافة.</p>';
+    return;
+  }
+  box.innerHTML = currentPromoEntries.map((e,idx)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;">
+      <span style="flex:1;font-weight:700;">${escapeHtml(e.materialName)}</span>
+      <span class="mono" style="color:var(--ink-soft);">×${escapeHtml(String(e.count))}</span>
+      <button type="button" onclick="removePromoMaterialEntry(${idx})" style="background:var(--red);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:13px;cursor:pointer;">✕</button>
+    </div>
+  `).join('');
+}
+window.removePromoMaterialEntry = function(idx){
+  currentPromoEntries.splice(idx,1);
+  renderPromoMaterialsEntries();
+};
+window.addPromoMaterialEntry = function(){
+  const select = document.getElementById('promo-material-select');
+  const otherInput = document.getElementById('promo-material-other-input');
+  const countStr = document.getElementById('promo-material-count-input').value;
+  const materialName = select.value === '__other__' ? otherInput.value.trim() : select.value;
+  if(!materialName){ showToast('اكتب اسم المادة الأول'); return; }
+  const count = Number(countStr);
+  if(countStr.trim()==='' || isNaN(count) || count<=0){ showToast('اكتب عدد صحيح'); return; }
+  currentPromoEntries.push({materialName, count});
+  document.getElementById('promo-material-count-input').value = '';
+  otherInput.value = '';
+  renderPromoMaterialsEntries();
+};
+document.getElementById('promo-materials-save').addEventListener('click', async ()=>{
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  if(!store) return;
+  const btn = document.getElementById('promo-materials-save');
+  btn.disabled = true; btn.textContent = 'بيحفظ...';
+  try{
+    await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        kind:'submitPromoMaterials', project: currentProject,
+        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+        storeCode: store.code, storeName: store.name,
+        items: currentPromoEntries,
+      }),
+    });
+    showToast('اتحفظت مواد الدعاية ✓');
+    document.getElementById('overlay-promo-materials').classList.remove('show');
+    document.getElementById('overlay-visit').classList.add('show');
   }catch(e){
     showToast('حصلت مشكلة، جرب تاني');
   }
@@ -2835,11 +3492,13 @@ document.getElementById('visit-finish').addEventListener('click', ()=>{
     showToast(`⛔ لازم تكون على بعد أقل من ${VISIT_GEOFENCE_METERS} متر من المحل عشان تقفل الزيارة (انت دلوقتي على بعد ${Math.round(dist)} متر تقريبًا)`, true);
     return;
   }
-  const allAvailCats = uniqueCategories(activeProducts());
-  const missingCats = allAvailCats.filter(c => !answeredAvailabilityCategories.includes(c));
-  if(missingCats.length > 0){
-    showToast(`⛔ لازم تجاوب على "توافر المنتجات" لكل الكاتيجوريز الأول (باقيلك: ${missingCats.join('، ')})`, true);
-    return;
+  if(hasEngagedWithAvailability){
+    const allAvailCats = uniqueCategories(activeProducts());
+    const missingCats = allAvailCats.filter(c => !answeredAvailabilityCategories.includes(c));
+    if(missingCats.length > 0){
+      showToast(`⛔ بما إنك بدأت تشتغل على "توافر المنتجات"، لازم تخلص كل الكاتيجوريز الأول (باقيلك: ${missingCats.join('، ')})`, true);
+      return;
+    }
   }
   logAction('إنهاء زيارة', store.code, store.name, '');
   fetch(ACTION_LOG_ENDPOINT, {
@@ -2853,10 +3512,12 @@ document.getElementById('visit-finish').addEventListener('click', ()=>{
       lat: store.lat, lng: store.lng,
       deviceFingerprint: getDeviceFingerprint(),
       channel: store.channel || '',
+      closureType: 'normal',
     }),
   }).catch(()=>{});
   activeVisit = null;
   stopVisitTimerDisplay();
+  stopZoneMonitoring();
   showToast('تمت الزيارة بنجاح ✓');
   document.getElementById('overlay-visit').classList.remove('show');
 });
@@ -3391,11 +4052,13 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
     ? 'admin — كل المنسقين'
     : state.repCode;
   document.getElementById('stat-monthly-chip').style.display = state.isAdmin ? 'flex' : 'none';
+  document.getElementById('btn-add-mode').style.display = state.isAdmin ? 'flex' : 'none';
 
   const showAdminEdit = state.isAdmin;
   ['btn-import','btn-bulk-zone'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = showAdminEdit ? 'flex' : 'none'; });
   document.getElementById('btn-manage-surveys').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-reports').style.display = state.isAdmin ? 'flex' : 'none';
+  document.getElementById('btn-open-filtering').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-create-project').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-open-coordinators-menu').style.display = state.isAdmin ? 'flex' : 'none';
   document.getElementById('btn-open-data-menu').style.display = state.isAdmin ? 'flex' : 'none';
@@ -4733,39 +5396,6 @@ async function getNextAutoCode(repCode){
   return newRange.start;
 }
 
-const storeTypeSelect = document.getElementById('store-type');
-storeTypeSelect.innerHTML = '<option value="">اختار النوع...</option>' + STORE_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('');
-
-const storeChainSelect = document.getElementById('store-chain');
-const storeChainOther = document.getElementById('store-chain-other');
-storeChainSelect.innerHTML = '<option value="">اختار السلسلة...</option>' +
-  GAS_STATION_CHAINS.map(c=>`<option value="${c}">${c}</option>`).join('') +
-  '<option value="__other__">أخرى</option>';
-
-function refreshChainFieldVisibility(){
-  const chainField = document.getElementById('chain-field');
-  const show = storeTypeSelect.value === GAS_STATION_TYPE;
-  chainField.style.display = show ? 'block' : 'none';
-  if(!show){
-    storeChainSelect.value = '';
-    storeChainOther.style.display = 'none';
-    storeChainOther.value = '';
-  }
-}
-storeTypeSelect.addEventListener('change', refreshChainFieldVisibility);
-storeChainSelect.addEventListener('change', ()=>{
-  storeChainOther.style.display = storeChainSelect.value === '__other__' ? 'block' : 'none';
-});
-
-function getSelectedChain(){
-  if(storeTypeSelect.value !== GAS_STATION_TYPE) return '';
-  if(storeChainSelect.value === '__other__') return storeChainOther.value.trim();
-  return storeChainSelect.value;
-}
-function isEnglishOnly(text){
-  return /^[A-Za-z0-9 &\-\.\',]+$/.test(text.trim());
-}
-
 /* كود العميل بالنسبة للأدمن: تسلسلي بالشكل CL-000001 (عميل رقم 1، رقم 2...)، مش مرتبط برينج مندوب معين */
 function nextClientSequentialCode(){
   let maxN = 0;
@@ -4784,11 +5414,6 @@ async function openStoreModal({mode, lat, lng, replacingFor}){
     : 'الموقع اتحدد أوتوماتيك من موقعك الحالي (GPS) ومينفعش يتغيّر يدوي.';
   document.getElementById('store-name').value = '';
   document.getElementById('store-code').value = 'بيتحدد...';
-  document.getElementById('store-type').value = '';
-  document.getElementById('chain-field').style.display = 'none';
-  document.getElementById('store-chain').value = '';
-  document.getElementById('store-chain-other').style.display = 'none';
-  document.getElementById('store-chain-other').value = '';
   document.getElementById('store-lat').value = lat!=null ? lat.toFixed(6) : '';
   document.getElementById('store-lng').value = lng!=null ? lng.toFixed(6) : '';
 
@@ -4864,15 +5489,11 @@ document.getElementById('btn-pick-loc').addEventListener('click', ()=>{
 document.getElementById('store-save').addEventListener('click', async ()=>{
   const name = document.getElementById('store-name').value.trim();
   const code = document.getElementById('store-code').value.trim();
-  const type = document.getElementById('store-type').value;
+  const type = STORE_TYPES[0]; // اتشال اختيار النوع من الواجهة، وبقى بيتحدد افتراضيًا (مش بيأثر على الزيارات المبنية على الكاتيجوريز/الأصناف الجديدة)
   const lat = parseFloat(document.getElementById('store-lat').value);
   const lng = parseFloat(document.getElementById('store-lng').value);
   if(!name || !code || isNaN(lat) || isNaN(lng)){
     showToast('لازم تملأ الاسم والإحداثيات (وتستنى الكود يتحدد تلقائي)');
-    return;
-  }
-  if(!type){
-    showToast('اختار نوع المحل الأول عشان نظام الزيارة يتحدد صح');
     return;
   }
 
@@ -4893,18 +5514,7 @@ document.getElementById('store-save').addEventListener('click', async ()=>{
     }
   }
 
-  let chain = '';
-  if(type === GAS_STATION_TYPE){
-    chain = getSelectedChain();
-    if(!chain){
-      showToast('اختار سلسلة المحطة (أو "أخرى" واكتب الاسم)');
-      return;
-    }
-    if(!isEnglishOnly(chain)){
-      showToast('اسم السلسلة لازم يتكتب بحروف إنجليزي بس');
-      return;
-    }
-  }
+  const chain = '';
 
   const codeExists = state.stores.some(s => String(s.code).trim().toLowerCase() === code.toLowerCase());
   if(codeExists){
@@ -4913,24 +5523,6 @@ document.getElementById('store-save').addEventListener('click', async ()=>{
   }
   if(isOutsideEgypt(lat,lng)){
     if(!confirm('الإحداثيات دي غريبة، برا حدود مصر تقريبًا — ممكن يكون فيه غلطة في الأرقام (زي إشارة سالبة ناقصة). متأكد إنك عايز تحفظها كده؟')) return;
-  }
-
-  // تنبيه محل قريب بنفس نوع "داخل محطة بنزين" ونفس السلسلة، ممكن يكون نفس العميل
-  if(type === GAS_STATION_TYPE && chain){
-    const nearbyDuplicate = state.stores.find(s=>
-      s.status==='valid' && s.storeType===GAS_STATION_TYPE && s.gasStationChain &&
-      s.gasStationChain.toLowerCase()===chain.toLowerCase() &&
-      haversineMeters(lat,lng,s.lat,s.lng) <= NEARBY_CHAIN_CHECK_METERS
-    );
-    if(nearbyDuplicate){
-      const sameCustomer = confirm(`في محل قريب بنفس السلسلة على بعد أقل من ${NEARBY_CHAIN_CHECK_METERS} متر:\n"${nearbyDuplicate.name}" — ${nearbyDuplicate.gasStationChain}\n\nهل ده نفس العميل؟`);
-      if(sameCustomer){
-        overlayStore.classList.remove('show');
-        showToast('تم إلغاء الإضافة — العميل موجود بالفعل');
-        return;
-      }
-      // لأ: يكمل الإضافة عادي
-    }
   }
 
   // تنبيه عام: أي محل تاني قريب (250 متر) وبنفس الاسم بالظبط، ممكن يكون نفس العميل بيتضاف تاني غلط
@@ -5640,8 +6232,12 @@ const overlayExitConfirm = document.getElementById('overlay-exit-confirm');
 const exitConfirmBtn = document.getElementById('exit-confirm');
 
 function doLogout(){
+  if(activeVisit){
+    showToast('⚠️ عندك زيارة لسه مفتوحة، فضلت شغالة ومراقبة النطاق شغالة لحد ما ترجع تسجل دخول تقفلها، أو الأدمن يعمل Exception Close', true);
+  }
   stopLiveLocationTracking();
   stopVisitTimerDisplay();
+  stopZoneMonitoring();
   activeVisit = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
