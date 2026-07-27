@@ -314,6 +314,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
           <button class="dd-item admin-only" id="btn-rename-project" style="display:none;">تغيير اسم المشروع</button>
           <button class="dd-item admin-only" id="btn-open-coordinators-menu" style="display:none;">المنسقين ›</button>
           <button class="dd-item admin-only" id="btn-open-data-menu" style="display:none;color:var(--red);">البيانات والتصفية ›</button>
+          <button class="dd-item admin-only" id="btn-open-zone-clients" style="display:none;">العملاء (التحكم في النطاق)</button>
           <div class="dd-divider"></div>
           <button class="dd-item" id="btn-logout"><span>⏻</span> خروج</button>
         </div>
@@ -324,6 +325,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   <div class="statbar">
     <div class="chip">الإجمالي <b id="stat-total">0</b></div>
     <div class="chip" id="stat-monthly-chip">زيارات الشهر <b id="stat-monthly">0</b> / 360-400</div>
+    <div class="chip" id="zone-counter-chip" style="display:none;">فتح النطاق المتبقي <b id="zone-counter-remaining">10</b>/10</div>
     <label class="chip" id="toggle-all-stores-label" style="cursor:pointer;">
       <input type="checkbox" id="toggle-all-stores" checked style="margin:0;">
       إظهار كل المحلات
@@ -847,6 +849,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     <div id="visit-timer" style="text-align:center;font-size:42px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:var(--primary-dark);margin:10px 0 6px;">00:00:00</div>
     <p class="hint" id="visit-sub" style="text-align:center;">اختار أي قسم تملاه، بأي ترتيب.</p>
     <p id="visit-zone-status" style="text-align:center;font-weight:700;font-size:13.5px;margin:2px 0 10px;color:var(--green);">✅ جوه نطاق المحل</p>
+    <div id="visit-zone-override-banner" style="display:none;text-align:center;background:var(--amber-tint);border:1.5px solid var(--amber);border-radius:10px;padding:10px;margin:0 0 12px;font-weight:700;color:var(--amber);"></div>
     <div id="visit-sections-list" style="display:flex;flex-direction:column;gap:12px;margin-top:18px;max-width:520px;margin-left:auto;margin-right:auto;"></div>
   </div>
   <div class="fullpage-footer">
@@ -922,6 +925,22 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
 </div>
 
 <!-- ============ أدمن: جولة اليوم — إدارة ============ -->
+<!-- ============ أدمن: العملاء (التحكم في النطاق) ============ -->
+<div class="fullpage" id="overlay-zone-clients">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="zone-clients-close">‹</button>
+    <h3>العملاء — التحكم في النطاق</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <div style="max-width:600px;margin:0 auto;">
+      <input type="text" id="zone-clients-search" placeholder="دور باسم المحل أو الكود..." style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);margin-bottom:14px;">
+      <p class="hint" id="zone-clients-status"></p>
+      <div id="zone-clients-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+  </div>
+</div>
+
 <div class="fullpage" id="overlay-today-tour-admin">
   <div class="fullpage-header">
     <button class="fullpage-back" id="today-tour-admin-close">‹</button>
@@ -1505,16 +1524,9 @@ function buildUsers(){
   list.push('admin001');
   return list;
 }
-function passwordFor(code){
-  if(code==='admin') return '1086';
-  if(code==='admin001') return 'admin@2026';
-  const custom = customReps.find(r=>r.code===code);
-  if(custom) return custom.password;
-  const n = parseInt(code.replace(BASE_REP_PREFIX,''),10);
-  if(!n || n<1 || n>BASE_REP_COUNT) return null;
-  if(n>=1 && n<=9) return String(n).repeat(4);
-  return String(n).repeat(2);
-}
+// ملحوظة أمان: دالة الباسورد اتشالت خالص من هنا. كل التحقق من الباسورد
+// بيحصل دلوقتي في السيرفر (Apps Script) بس، عشان محدش يقدر يشوف أي باسورد
+// عن طريق "View Page Source" في المتصفح.
 
 const ZONE_COLORS = ['#0B4F4A','#E2A33B','#D6553F','#3E8E5A','#5B6FD6','#B15FC4','#1A9DA6','#C97A2B','#7A6FF0','#2E9E5B','#D64F8C','#4C8FBF','#9C6B2E','#6E9E2E'];
 
@@ -2119,6 +2131,163 @@ document.getElementById('btn-radar').addEventListener('click', ()=>{
   }
 });
 
+/* ===================== أدمن: العملاء (التحكم في النطاق) ===================== */
+document.getElementById('btn-open-zone-clients').addEventListener('click', ()=>{
+  document.getElementById('dropdown-menu').classList.remove('show');
+  document.getElementById('overlay-zone-clients').classList.add('show');
+  document.getElementById('zone-clients-search').value = '';
+  renderZoneClientsList();
+});
+document.getElementById('zone-clients-close').addEventListener('click', ()=>{
+  document.getElementById('overlay-zone-clients').classList.remove('show');
+});
+document.getElementById('zone-clients-search').addEventListener('input', renderZoneClientsList);
+
+let zoneClientsTimerInterval = null;
+let zoneCounterCache = {};
+async function renderZoneClientsList(){
+  const q = document.getElementById('zone-clients-search').value.trim().toLowerCase();
+  const list = state.stores.filter(s =>
+    !q || s.name.toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q)
+  );
+  document.getElementById('zone-clients-status').textContent = `عدد النتائج: ${list.length}`;
+
+  const uniqueReps = [...new Set(list.map(s=>s.repCode).filter(Boolean))];
+  await Promise.all(uniqueReps.map(async rep=>{
+    if(zoneCounterCache[rep]) return;
+    try{
+      const res = await fetch(ACTION_LOG_ENDPOINT + '?action=getZoneCounter&project=' + encodeURIComponent(currentProject) + '&repCode=' + encodeURIComponent(rep));
+      const data = await res.json();
+      if(data.ok) zoneCounterCache[rep] = data.counter;
+    }catch(e){ /* تجاهل */ }
+  }));
+
+  const box = document.getElementById('zone-clients-list');
+  box.innerHTML = list.map(s=>{
+    const mode = s.zoneOverrideMode || 'none';
+    const isIndefinite = mode === 'indefinite';
+    const isTimed = mode === 'timed' && s.zoneOverrideExpiresAt && Date.now() < s.zoneOverrideExpiresAt;
+    const counter = zoneCounterCache[s.repCode] || {used:0, remaining:10, locked:false};
+    return `
+      <div style="border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div>
+            <div style="font-weight:700;">${escapeHtml(s.name)} <span class="mono" style="color:var(--ink-soft);font-size:12px;">(${escapeHtml(String(s.code))})</span></div>
+            <div style="font-size:12px;color:var(--ink-soft);">المنسق: ${escapeHtml(repNamesMap[s.repCode]||s.repCode||'')} — استخدم ${counter.used}/10 الشهر ده${counter.locked?' <span style="color:var(--red);font-weight:700;">(مقفول)</span>':''}</div>
+          </div>
+          ${counter.locked ? `<button type="button" class="btn-danger" style="font-size:12px;padding:6px 12px;" onclick="unlockZoneForRep('${s.repCode}')">فك القفل</button>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label class="avail-toggle">
+              <input type="checkbox" ${isIndefinite?'checked':''} ${counter.locked?'disabled':''} onchange="toggleIndefiniteZone('${s.id}', this.checked)">
+              <span class="avail-toggle-slider"></span>
+            </label>
+            <span style="font-size:12.5px;font-weight:700;color:${isIndefinite?'var(--green)':'var(--ink-soft)'};">فتح نطاق</span>
+          </div>
+          <button type="button" class="btn-ghost" style="font-size:12px;padding:7px 12px;" ${(isTimed||counter.locked)?'disabled':''} onclick="openTimedZone('${s.id}')">فتح النطاق 10 دقايق</button>
+          ${isTimed ? `<span class="mono zone-timed-countdown" data-expires="${s.zoneOverrideExpiresAt}" style="font-weight:700;color:var(--red);font-size:13px;"></span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  if(zoneClientsTimerInterval) clearInterval(zoneClientsTimerInterval);
+  zoneClientsTimerInterval = setInterval(()=>{
+    let anyExpired = false;
+    document.querySelectorAll('.zone-timed-countdown').forEach(el=>{
+      const expires = Number(el.dataset.expires);
+      const remain = expires - Date.now();
+      if(remain <= 0){ anyExpired = true; return; }
+      const mm = String(Math.floor(remain/60000)).padStart(2,'0');
+      const ss_ = String(Math.floor((remain%60000)/1000)).padStart(2,'0');
+      el.textContent = `هيتقفل بعد ${mm}:${ss_}`;
+    });
+    if(anyExpired) renderZoneClientsList();
+  }, 1000);
+}
+
+window.unlockZoneForRep = async function(repCode){
+  if(!confirm(`متأكد عايز تفك قفل فتح النطاق للمنسق "${repCode}"؟`)) return;
+  try{
+    await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ kind:'unlockZoneCounter', project: currentProject, repCode }),
+    });
+    delete zoneCounterCache[repCode];
+    showToast('اتفك القفل ✓');
+    renderZoneClientsList();
+  }catch(e){ showToast('حصلت مشكلة، جرب تاني'); }
+};
+
+window.toggleIndefiniteZone = async function(storeId, checked){
+  const store = state.stores.find(s=>s.id===storeId);
+  if(!store) return;
+  if(checked){
+    store.zoneOverrideMode = 'indefinite';
+    store.zoneOverrideExpiresAt = null;
+    await incrementZoneCounterForRep(store.repCode);
+    delete zoneCounterCache[store.repCode];
+  } else {
+    store.zoneOverrideMode = 'none';
+    store.zoneOverrideExpiresAt = null;
+  }
+  await saveStores();
+  renderZoneClientsList();
+};
+
+window.openTimedZone = async function(storeId){
+  const store = state.stores.find(s=>s.id===storeId);
+  if(!store) return;
+  store.zoneOverrideMode = 'timed';
+  store.zoneOverrideExpiresAt = Date.now() + 10*60000;
+  await incrementZoneCounterForRep(store.repCode);
+  delete zoneCounterCache[store.repCode];
+  await saveStores();
+  renderZoneClientsList();
+  showToast(`فتحت نطاق "${store.name}" لمدة 10 دقايق`);
+};
+
+async function refreshZoneCounterChip(){
+  if(!ACTION_LOG_ENDPOINT || !state.repCode) return;
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT + '?action=getZoneCounter&project=' + encodeURIComponent(currentProject) + '&repCode=' + encodeURIComponent(state.repCode));
+    const data = await res.json();
+    if(data.ok && data.counter){
+      document.getElementById('zone-counter-remaining').textContent = data.counter.remaining;
+      if(data.counter.used === 10){
+        showToast('⚠️ وصلت للحد الشهري لفتح النطاق (10 مرات). أي فتح نطاق زيادة هيأثر على تقييم التزامك، ومسموحلك بمرتين زيادة بس قبل ما يتقفل الموضوع تمامًا.', true);
+      }
+    }
+  }catch(e){ /* تجاهل */ }
+}
+
+async function incrementZoneCounterForRep(repCode){
+  if(!repCode) return;
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ kind:'incrementZoneCounter', project: currentProject, repCode }),
+    });
+    const data = await res.json();
+    if(data.ok && data.counter){
+      if(!state.isAdmin && state.repCode === repCode){
+        document.getElementById('zone-counter-remaining').textContent = data.counter.remaining;
+      }
+      if(data.counter.justHitLimit){
+        showToast(`⚠️ المنسق ${repCode} وصل للحد الشهري (10 مرات) — مسموحله بمرتين زيادة بس قبل ما يتقفل تمامًا`, true);
+      }
+    }
+  }catch(e){ /* تجاهل */ }
+}
+
+/* ---------- تحقق نطاق المحل: بيراعي الاستثناء (فتح نطاق) لو مفعّل ---------- */
+function isStoreZoneOverrideActive(store){
+  if(!store) return false;
+  if(store.zoneOverrideMode === 'indefinite') return true;
+  if(store.zoneOverrideMode === 'timed' && store.zoneOverrideExpiresAt && Date.now() < store.zoneOverrideExpiresAt) return true;
+  return false;
+}
+
 /* ===================== أدمن: إدارة جولة اليوم ===================== */
 document.getElementById('btn-today-tour-admin').addEventListener('click', async ()=>{
   document.getElementById('overlay-data-menu').classList.remove('show');
@@ -2547,20 +2716,26 @@ function renderCoordinatorsList(){
   }).join('');
 }
 let currentCoordinatorCode = null;
-window.openCoordinatorDetail = function(code){
+window.openCoordinatorDetail = async function(code){
   currentCoordinatorCode = code;
   document.getElementById('overlay-coordinators').classList.remove('show');
   document.getElementById('coordinator-detail-title').textContent = 'بيانات ' + code;
   document.getElementById('coordinator-name-input').value = repNamesMap[code] || '';
   document.getElementById('coordinator-username-display').value = code;
-  const custom = customReps.find(r=>r.code===code);
-  document.getElementById('coordinator-password-display').value = custom ? custom.password : passwordFor(code) || '(كلمة سر أساسية حسب رقم الكود)';
+  document.getElementById('coordinator-password-display').value = 'بيتحمّل...';
+  document.getElementById('overlay-coordinator-detail').classList.add('show');
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT + '?action=getCredentialPassword&project=' + encodeURIComponent(currentProject) + '&username=' + encodeURIComponent(code));
+    const data = await res.json();
+    document.getElementById('coordinator-password-display').value = (data.ok && data.password) ? data.password : '(مش موجود)';
+  }catch(e){
+    document.getElementById('coordinator-password-display').value = '(حصلت مشكلة في الجلب)';
+  }
   const stores = state.stores.filter(s=>s.repCode===code);
   document.getElementById('coordinator-stores-count').textContent = `عدد المحلات المسجلة عليه: ${stores.length}`;
   document.getElementById('coordinator-stores-list').innerHTML = stores.map(s=>`
     <div class="zone-row"><span style="font-size:12.5px;">${escapeHtml(s.name)} <span class="mono" style="color:var(--ink-soft);">(${escapeHtml(String(s.code))})</span></span></div>
   `).join('') || '<p class="hint">مفيش محلات لسه.</p>';
-  document.getElementById('overlay-coordinator-detail').classList.add('show');
 };
 document.getElementById('coordinator-detail-close').addEventListener('click', ()=>{
   document.getElementById('overlay-coordinator-detail').classList.remove('show');
@@ -3082,6 +3257,7 @@ window.startVisitFlow = function(storeId){
     renderVisitSections();
     document.getElementById('overlay-visit').classList.add('show');
     startVisitTimerDisplay();
+    updateZoneOverrideBanner();
     return;
   }
 
@@ -3091,7 +3267,7 @@ window.startVisitFlow = function(storeId){
     return;
   }
   const dist = distanceToStoreMeters(store);
-  if(dist > VISIT_GEOFENCE_METERS){
+  if(dist > VISIT_GEOFENCE_METERS && !isStoreZoneOverrideActive(store)){
     showToast(`⛔ لازم تكون على بعد أقل من ${VISIT_GEOFENCE_METERS} متر من المحل عشان تبدأ الزيارة (انت دلوقتي على بعد ${Math.round(dist)} متر تقريبًا)`, true);
     return;
   }
@@ -3131,18 +3307,47 @@ let zoneMonitorInterval = null;
 let zoneAutoCloseTimer = null;
 let zoneMonitorStore = null;
 
+let zoneOverrideBannerInterval = null;
 function startZoneMonitoring(store){
   stopZoneMonitoring();
   zoneMonitorStore = store;
   visitZoneState = {status:'inside', exitTime:null, lastAlertTime:0};
   updateZoneStatusUI();
   zoneMonitorInterval = setInterval(checkZoneStatus, 10000); // فحص كل 10 ثواني
+  updateZoneOverrideBanner();
+  zoneOverrideBannerInterval = setInterval(updateZoneOverrideBanner, 1000); // عداد النطاق الاستثنائي بيتحدّث كل ثانية عشان المنسق يبقى حريص
 }
 function stopZoneMonitoring(){
   if(zoneMonitorInterval){ clearInterval(zoneMonitorInterval); zoneMonitorInterval = null; }
   if(zoneAutoCloseTimer){ clearTimeout(zoneAutoCloseTimer); zoneAutoCloseTimer = null; }
+  if(zoneOverrideBannerInterval){ clearInterval(zoneOverrideBannerInterval); zoneOverrideBannerInterval = null; }
+  const bannerEl = document.getElementById('visit-zone-override-banner');
+  if(bannerEl) bannerEl.style.display = 'none';
   visitZoneState = null;
   zoneMonitorStore = null;
+}
+function updateZoneOverrideBanner(){
+  const bannerEl = document.getElementById('visit-zone-override-banner');
+  if(!bannerEl || !zoneMonitorStore) return;
+  const store = zoneMonitorStore;
+  if(store.zoneOverrideMode === 'indefinite'){
+    bannerEl.style.display = 'block';
+    bannerEl.textContent = '🔓 النطاق مفتوح استثنائيًا من الأدمن — من غير مهلة زمنية، لحد ما يقفله بنفسه';
+    return;
+  }
+  if(store.zoneOverrideMode === 'timed' && store.zoneOverrideExpiresAt){
+    const remain = store.zoneOverrideExpiresAt - Date.now();
+    if(remain <= 0){
+      bannerEl.style.display = 'none';
+      return;
+    }
+    const mm = String(Math.floor(remain/60000)).padStart(2,'0');
+    const ss_ = String(Math.floor((remain%60000)/1000)).padStart(2,'0');
+    bannerEl.style.display = 'block';
+    bannerEl.textContent = `🔓 النطاق مفتوح استثنائيًا — هيتقفل تلقائي بعد ${mm}:${ss_}. خلّص شغلك في المحل قبل كده!`;
+    return;
+  }
+  bannerEl.style.display = 'none';
 }
 function sendZoneAlert(message){
   showToast(message, true);
@@ -3159,7 +3364,7 @@ function checkZoneStatus(){
   if(!activeVisit || !zoneMonitorStore || !visitZoneState) return;
   if(!myLocation){ return; }
   const dist = distanceToStoreMeters(zoneMonitorStore);
-  const isInside = dist <= VISIT_GEOFENCE_METERS;
+  const isInside = (dist <= VISIT_GEOFENCE_METERS) || isStoreZoneOverrideActive(zoneMonitorStore);
 
   if(isInside){
     if(visitZoneState.status !== 'inside'){
@@ -3241,6 +3446,7 @@ function performAutoClose(){
       closureType: 'auto_closed',
     }),
   }).catch(()=>{});
+  incrementZoneCounterForRep(state.repCode); // اتقفلت تلقائي بسبب خروج من النطاق = بتدخل في نفس عداد الالتزام
   sendZoneAlert(`⛔ اتقفلت الزيارة تلقائيًا لأنك فضلت برا نطاق "${store.name}" أكتر من ${VISIT_GRACE_PERIOD_MINUTES} دقيقة`);
   activeVisit = null;
   stopVisitTimerDisplay();
@@ -4007,7 +4213,7 @@ document.getElementById('visit-finish').addEventListener('click', ()=>{
     return;
   }
   const dist = distanceToStoreMeters(store);
-  if(dist > VISIT_GEOFENCE_METERS){
+  if(dist > VISIT_GEOFENCE_METERS && !isStoreZoneOverrideActive(store)){
     showToast(`⛔ لازم تكون على بعد أقل من ${VISIT_GEOFENCE_METERS} متر من المحل عشان تقفل الزيارة (انت دلوقتي على بعد ${Math.round(dist)} متر تقريبًا)`, true);
     return;
   }
@@ -4467,20 +4673,41 @@ projectSelect.addEventListener('change', async ()=>{
 document.getElementById('login-btn').addEventListener('click', async ()=>{
   currentProject = projectSelect.value; // تأكيد نهائي إن المشروع الصح متحدد قبل أي حفظ
   localStorage.setItem('masar_last_project', currentProject);
-  const typedUser = userSelect.value.trim();
-  const user = buildUsers().find(u => u.toLowerCase() === typedUser.toLowerCase());
+  const typedUser = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value.trim();
   const err = document.getElementById('login-err');
   err.textContent = '';
-  if(!user){
-    err.textContent = 'اليوزر ده مش موجود';
+  if(!typedUser || !pass){
+    err.textContent = 'اكتب اليوزر والباسورد';
     return;
   }
-  if(pass !== passwordFor(user)){
-    err.textContent = 'الباسورد غلط';
+
+  document.getElementById('login-btn').disabled = true;
+  document.getElementById('login-btn').textContent = 'بيتأكد من البيانات...';
+  let loginResult;
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ kind:'login', project: currentProject, username: typedUser, password: pass }),
+    });
+    loginResult = await res.json();
+  }catch(e){
+    document.getElementById('login-btn').disabled = false;
+    document.getElementById('login-btn').textContent = 'دخول';
+    err.textContent = 'حصلت مشكلة في الاتصال، جرب تاني';
     return;
   }
-  if(user !== 'admin'){
+  document.getElementById('login-btn').disabled = false;
+  document.getElementById('login-btn').textContent = 'دخول';
+
+  if(!loginResult.ok){
+    err.textContent = loginResult.error === 'not_found' ? 'اليوزر ده مش موجود' : 'الباسورد غلط';
+    return;
+  }
+  const user = loginResult.username; // الاسم المؤكَّد من السيرفر (مش اللي كتبه هو بالحروف الكبيرة/الصغيرة)
+  const role = loginResult.role || 'coordinator';
+
+  if(role !== 'admin' && role !== 'viewAdmin'){
     try{
       const disabledRes = await window.storage.get(pk('disabled_reps'), true);
       const disabled = disabledRes && disabledRes.value ? JSON.parse(disabledRes.value) : [];
@@ -4517,10 +4744,10 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
       document.getElementById('login-btn').textContent = 'دخول';
     }
   }
-  if(user === 'admin' || user === 'admin001'){
+  if(role === 'admin' || role === 'viewAdmin'){
     // الأدمن دلوقتي بيشوف ويعدّل على بيانات كل المنسقين مع بعض في نفس المشروع، من غير ما يختار منسق بعينه
     state.isAdmin = true;
-    state.isViewOnlyAdmin = (user === 'admin001'); // أدمن ثاني بصلاحية "شوف بس" حاليًا
+    state.isViewOnlyAdmin = (role === 'viewAdmin'); // أدمن ثاني بصلاحية "شوف بس" حاليًا
     state.repCode = 'ALL';
     state.readOnly = false;
   } else {
@@ -4591,13 +4818,18 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   document.getElementById('btn-rename-project').style.display = fullAdminOnly ? 'flex' : 'none';
   document.getElementById('btn-open-coordinators-menu').style.display = fullAdminOnly ? 'flex' : 'none';
   document.getElementById('btn-open-data-menu').style.display = fullAdminOnly ? 'flex' : 'none';
+  document.getElementById('btn-open-zone-clients').style.display = fullAdminOnly ? 'flex' : 'none';
   document.getElementById('dd-admin-divider').style.display = state.isAdmin ? 'block' : 'none';
 
   weekSelect.value = state.readOnly ? '1' : await loadCurrentWeek(state.repCode);
   loadSurveysFromServer(); // بنجيب الاستبيانات في الخلفية، مش لازم نستنى
   loadRepNames(); // وأسماء المنسقين كمان في الخلفية
   loadProducts(); // والمنتجات كمان
-  if(!state.isAdmin) startLiveLocationTracking(); // تتبع مباشر للمنسق وهو ماشي، مش هيحتاج يدوس "موقعي" كل شوية
+  document.getElementById('zone-counter-chip').style.display = state.isAdmin ? 'none' : 'flex';
+  if(!state.isAdmin){
+    startLiveLocationTracking(); // تتبع مباشر للمنسق وهو ماشي، مش هيحتاج يدوس "موقعي" كل شوية
+    refreshZoneCounterChip();
+  }
 
   const editButtons = ['btn-add-mode','btn-export','btn-locate'];
   editButtons.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = state.readOnly ? 'none' : 'flex'; });
@@ -6310,8 +6542,12 @@ document.getElementById('btn-add-rep').addEventListener('click', async ()=>{
     showToast('لازم تحط باسورد');
     return;
   }
-  customReps.push({code, password: password.trim()});
+  customReps.push({code}); // الباسورد نفسه بيتخزن في السيرفر بس، مش هنا
   try{
+    await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ kind:'addOrUpdateCredential', project: currentProject, username: code, password: password.trim(), role: 'coordinator' }),
+    });
     await window.storage.set(pk('custom_reps'), JSON.stringify(customReps), true);
     addRepOptionToAllSelects(code);
     showToast(`اتضاف "${code}" بنجاح، وهيلاقي نفسه في قايمة الدخول من دلوقتي`);
@@ -6348,6 +6584,7 @@ document.getElementById('bulk-reps-file-input').addEventListener('change', async
   const existingUsers = buildUsers();
   let added = 0, skipped = 0;
   const addedCodes = [];
+  const credentialsToSave = [];
   for(let r=1; r<rows.length; r++){
     const row = rows[r];
     if(!row || row[codeCol]==null) continue;
@@ -6355,7 +6592,8 @@ document.getElementById('bulk-reps-file-input').addEventListener('change', async
     const password = row[passCol]!=null ? String(row[passCol]).trim() : '';
     if(!code || !password || code==='ADMIN' || code==='ALL'){ skipped++; continue; }
     if(existingUsers.includes(code) || addedCodes.includes(code)){ skipped++; continue; }
-    customReps.push({code, password});
+    customReps.push({code}); // من غير باسورد — الباسورد بيتخزن في السيرفر بس
+    credentialsToSave.push({username: code, password});
     addedCodes.push(code);
     added++;
   }
@@ -6365,6 +6603,12 @@ document.getElementById('bulk-reps-file-input').addEventListener('change', async
     return;
   }
   try{
+    for(const cred of credentialsToSave){
+      await fetch(ACTION_LOG_ENDPOINT, {
+        method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ kind:'addOrUpdateCredential', project: currentProject, username: cred.username, password: cred.password, role: 'coordinator' }),
+      });
+    }
     await window.storage.set(pk('custom_reps'), JSON.stringify(customReps), true);
     addedCodes.forEach(addRepOptionToAllSelects);
     showToast(`اتضاف ${added} منسق جديد ✓${skipped>0 ? ` (اتجاهل ${skipped} صف - مكرر أو ناقص بيانات)` : ''}`);
