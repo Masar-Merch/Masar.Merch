@@ -298,8 +298,9 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     <div class="topbar-actions">
       <button class="tb-btn" id="btn-add-mode"><span>＋</span><span class="label">إضافة محل</span></button>
       <button class="tb-btn" id="btn-locate"><span class="label">موقعي</span></button>
-      <button class="tb-btn tb-btn-circle" id="btn-client-list" title="قايمة العملاء / جولة اليوم">◎</button>
+      <button class="tb-btn" id="btn-client-list"><span class="label">قايمة العملاء</span></button>
       <button class="tb-btn tb-btn-circle" id="btn-radar" title="رادار 5 كم">◉</button>
+      <button class="tb-btn" id="btn-show-all-stores"><span class="label">اظهر كل المحلات على الخريطة</span></button>
       <div class="menu-wrap">
         <button class="tb-btn" id="btn-menu-toggle"></button>
         <div class="dropdown-menu" id="dropdown-menu">
@@ -325,10 +326,7 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   <div class="statbar">
     <div class="chip">الإجمالي <b id="stat-total">0</b></div>
     <div class="chip" id="zone-counter-chip" style="display:none;">فتح النطاق المتبقي <b id="zone-counter-remaining">10</b>/10</div>
-    <label class="chip" id="toggle-all-stores-label" style="cursor:pointer;">
-      <input type="checkbox" id="toggle-all-stores" checked style="margin:0;">
-      إظهار كل المحلات
-    </label>
+    <div class="chip" id="offline-queue-badge" style="display:none;background:var(--amber-tint);color:var(--amber);font-weight:800;"></div>
     <label class="chip" style="gap:5px;display:none;">
       الأسبوع الحالي:
       <select id="current-week-select" style="border:none;background:transparent;font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:12.5px;">
@@ -621,6 +619,16 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   </div>
   <div class="fullpage-body">
     <div id="availability-products-list" style="display:flex;flex-direction:column;gap:14px;max-width:520px;margin:0 auto;"></div>
+    <div style="max-width:520px;margin:20px auto 0;border-top:1.5px solid var(--line);padding-top:16px;">
+      <p class="hint" style="margin-bottom:10px;">صور شكل الكاتيجوري (اختياري)</p>
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <button type="button" class="btn-ghost" style="flex:1;" onclick="document.getElementById('availability-photo-before-input').click()">📷 صور قبل التنسيق</button>
+        <button type="button" class="btn-ghost" style="flex:1;" onclick="document.getElementById('availability-photo-after-input').click()">📷 صور بعد التنسيق</button>
+      </div>
+      <input type="file" accept="image/*" capture="environment" id="availability-photo-before-input" style="display:none;" onchange="addSetupPhotoUI('availability', 'before', this.files[0])">
+      <input type="file" accept="image/*" capture="environment" id="availability-photo-after-input" style="display:none;" onchange="addSetupPhotoUI('availability', 'after', this.files[0])">
+      <div id="availability-setup-photos-display"></div>
+    </div>
   </div>
   <div class="fullpage-footer">
     <button class="btn-solid" id="availability-products-save" style="width:100%;">حفظ</button>
@@ -791,6 +799,16 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   </div>
   <div class="fullpage-body">
     <div id="spaces-products-list" style="display:flex;flex-direction:column;gap:10px;max-width:520px;margin:0 auto;"></div>
+    <div style="max-width:520px;margin:20px auto 0;border-top:1.5px solid var(--line);padding-top:16px;">
+      <p class="hint" style="margin-bottom:10px;">صور شكل الكاتيجوري (اختياري)</p>
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <button type="button" class="btn-ghost" style="flex:1;" onclick="document.getElementById('spaces-photo-before-input').click()">📷 صور قبل التنسيق</button>
+        <button type="button" class="btn-ghost" style="flex:1;" onclick="document.getElementById('spaces-photo-after-input').click()">📷 صور بعد التنسيق</button>
+      </div>
+      <input type="file" accept="image/*" capture="environment" id="spaces-photo-before-input" style="display:none;" onchange="addSetupPhotoUI('spaces', 'before', this.files[0])">
+      <input type="file" accept="image/*" capture="environment" id="spaces-photo-after-input" style="display:none;" onchange="addSetupPhotoUI('spaces', 'after', this.files[0])">
+      <div id="spaces-setup-photos-display"></div>
+    </div>
   </div>
 </div>
 
@@ -1626,6 +1644,81 @@ async function loadStores(repCode){
 /* ===================== سجل الأكشنات المركزي (Google Sheet) ===================== */
 const ACTION_LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzBj2IyWQEYhGCFYdQ3gaEU9F3SfKu8ObaBEPgHuTwpfM0PrjV3-zq8vT7ujeEbbaLthA/exec';
 
+/* ============================================================
+   طابور الحفظ المحلي (Offline Queue) — عشان لو المنسق في مكان نت
+   ضعيف أو مقطوع، أي بيانات بيحفظها (توافر أصناف، أسعار، مساحات...)
+   متضيعش خالص. بتتخزن على جهازه (localStorage حقيقي)، وبتترفع
+   تلقائي أول ما النت يرجع.
+   ============================================================ */
+const OFFLINE_QUEUE_KEY = 'masar_offline_queue';
+function getOfflineQueue(){
+  try{ return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]'); }catch(e){ return []; }
+}
+function setOfflineQueue(queue){
+  try{ localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue)); }catch(e){ /* تجاهل */ }
+  updateOfflineQueueIndicator();
+}
+function updateOfflineQueueIndicator(){
+  const badge = document.getElementById('offline-queue-badge');
+  if(!badge) return;
+  const n = getOfflineQueue().length;
+  if(n > 0){
+    badge.style.display = 'flex';
+    badge.textContent = `🔄 ${n} عملية لسه محتاجة ترفع`;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+/* بديل لأي fetch POST حساس — لو فشل (نت ضعيف/مقطوع)، بيتخزن محليًا بدل ما يضيع، وبيترفع لوحده بعدين */
+async function postWithQueue(payload){
+  try{
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), 12000);
+    const res = await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if(!res.ok) throw new Error('bad status');
+    let data = null;
+    try{ data = await res.json(); }catch(e){ /* بعض الأكشنز مش لازم ترجع JSON */ }
+    return { queued:false, ok:true, data };
+  }catch(e){
+    const queue = getOfflineQueue();
+    queue.push({ payload, queuedAt: Date.now() });
+    setOfflineQueue(queue);
+    return { queued:true, ok:true, data:null };
+  }
+}
+async function retryOfflineQueue(){
+  const queue = getOfflineQueue();
+  if(queue.length === 0) return;
+  const stillFailed = [];
+  for(const item of queue){
+    try{
+      const controller = new AbortController();
+      const timer = setTimeout(()=>controller.abort(), 12000);
+      const res = await fetch(ACTION_LOG_ENDPOINT, {
+        method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(item.payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if(!res.ok) throw new Error('bad status');
+    }catch(e){
+      stillFailed.push(item);
+    }
+  }
+  const uploaded = queue.length - stillFailed.length;
+  setOfflineQueue(stillFailed);
+  if(uploaded > 0){
+    showToast(`✅ اترفع ${uploaded} عملية كانت متأخرة بسبب ضعف النت`);
+  }
+}
+setInterval(retryOfflineQueue, 30000);
+window.addEventListener('online', retryOfflineQueue);
+
 /* ===================== المشاريع (Multi-Project) ===================== */
 // كل مشروع منفصل تمامًا: منسقين مختلفة، بيانات مختلفة، شيت جوجل شيت ودرايف منفصلين.
 // المشروع الحالي بيتحدد من ليستة صفحة تسجيل الدخول، وكل مفاتيح التخزين المحلي (window.storage) بتتحط جوه namespace بتاعه.
@@ -1802,6 +1895,54 @@ async function uploadMediumQualityPhoto(file, fileNamePrefix, storeCode){
   if(!data.ok) throw new Error(data.error || 'فشل رفع الصورة');
   return data.url;
 }
+
+/* ===================== صور "قبل/بعد التنسيق" (خاصة بالكاتيجوري كلها، اختياري) ===================== */
+async function loadAndRenderSetupPhotos(section, category){
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  const displayEl = document.getElementById(section+'-setup-photos-display');
+  if(!displayEl) return;
+  displayEl.innerHTML = '<p class="hint">بيتحمّل...</p>';
+  if(!store){ displayEl.innerHTML = ''; return; }
+  try{
+    const res = await fetch(`${ACTION_LOG_ENDPOINT}?action=getSetupPhotosForCategory&project=${encodeURIComponent(currentProject)}&storeCode=${encodeURIComponent(store.code)}&section=${encodeURIComponent(section)}&category=${encodeURIComponent(category)}`);
+    const data = await res.json();
+    renderSetupPhotos(section, (data.ok && data.photos) ? data.photos : {before:[], after:[]});
+  }catch(e){
+    displayEl.innerHTML = '';
+  }
+}
+function renderSetupPhotos(section, photos){
+  const displayEl = document.getElementById(section+'-setup-photos-display');
+  if(!displayEl) return;
+  const row = (label, urls)=> urls.length ? `
+    <div style="margin-top:8px;">
+      <p class="hint" style="margin-bottom:6px;">${label} (${urls.length})</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${urls.map(u=>`<img src="${u}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;border:1.5px solid var(--line);">`).join('')}
+      </div>
+    </div>` : '';
+  displayEl.innerHTML = row('صور قبل التنسيق', photos.before||[]) + row('صور بعد التنسيق', photos.after||[]);
+}
+window.addSetupPhotoUI = async function(section, photoType, file){
+  if(!file) return;
+  const store = state.stores.find(s=>s.id===state.surveyFillStoreId);
+  const category = productScreenSelectedCategory;
+  if(!store || !category) return;
+  showToast('بيرفع الصورة...');
+  try{
+    const photoUrl = await uploadMediumQualityPhoto(file, (store.code)+'_setup_'+photoType, store.code);
+    await postWithQueue({
+      kind:'addSetupPhoto', project: currentProject,
+      repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+      storeCode: store.code, storeName: store.name,
+      section, category, photoType, photoUrl,
+    });
+    showToast('اتضافت الصورة ✓');
+    loadAndRenderSetupPhotos(section, category);
+  }catch(e){
+    showToast('حصلت مشكلة في رفع الصورة، جرب تاني');
+  }
+};
 
 /* ===================== نظام الاستبيانات ===================== */
 const SURVEY_QUESTION_TYPES = [
@@ -3055,11 +3196,13 @@ window.openFilterForm = function(sectionKey){
 
   if(filterDatePickerInstance) filterDatePickerInstance.destroy();
   const today = new Date();
+  const ninetyDaysAgo = new Date(today);
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
   filterDatePickerInstance = flatpickr('#filter-date-range', {
     mode: 'range',
     dateFormat: 'Y-m-d',
     showMonths: 2,
-    defaultDate: [today, today],
+    defaultDate: [ninetyDaysAgo, today],
     locale: { rangeSeparator: ' → ' },
   });
 
@@ -3513,19 +3656,16 @@ window.startVisitFlow = function(storeId){
   startVisitTimerDisplay();
   startZoneMonitoring(store);
 
-  fetch(ACTION_LOG_ENDPOINT, {
-    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({
-      kind:'logVisit', event:'start', project: currentProject,
-      visitId: state.currentVisitId,
-      repCode: state.repCode,
-      coordinatorName: repNamesMap[state.repCode] || '',
-      storeName: store.name, storeCode: store.code,
-      lat: store.lat, lng: store.lng,
-      deviceFingerprint: getDeviceFingerprint(),
-      channel: store.channel || '',
-    }),
-  }).catch(()=>{});
+  postWithQueue({
+    kind:'logVisit', event:'start', project: currentProject,
+    visitId: state.currentVisitId,
+    repCode: state.repCode,
+    coordinatorName: repNamesMap[state.repCode] || '',
+    storeName: store.name, storeCode: store.code,
+    lat: store.lat, lng: store.lng,
+    deviceFingerprint: getDeviceFingerprint(),
+    channel: store.channel || '',
+  });
 };
 
 /* ===================== مراقبة نطاق الزيارة (Zone Monitoring) ===================== */
@@ -3683,18 +3823,15 @@ function performAutoClose(){
   if(!activeVisit || !zoneMonitorStore) return;
   const store = zoneMonitorStore;
   logAction('إنهاء زيارة (تلقائي - خروج من النطاق)', store.code, store.name, '');
-  fetch(ACTION_LOG_ENDPOINT, {
-    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({
-      kind:'logVisit', event:'end', project: currentProject,
-      visitId: state.currentVisitId,
-      repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
-      storeName: store.name, storeCode: store.code,
-      lat: store.lat, lng: store.lng,
-      deviceFingerprint: getDeviceFingerprint(), channel: store.channel || '',
-      closureType: 'auto_closed',
-    }),
-  }).catch(()=>{});
+  postWithQueue({
+    kind:'logVisit', event:'end', project: currentProject,
+    visitId: state.currentVisitId,
+    repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+    storeName: store.name, storeCode: store.code,
+    lat: store.lat, lng: store.lng,
+    deviceFingerprint: getDeviceFingerprint(), channel: store.channel || '',
+    closureType: 'auto_closed',
+  });
   incrementZoneCounterForRep(state.repCode); // اتقفلت تلقائي بسبب خروج من النطاق = بتدخل في نفس عداد الالتزام
   sendZoneAlert(`⛔ اتقفلت الزيارة تلقائيًا لأنك فضلت برا نطاق "${store.name}" أكتر من ${VISIT_GRACE_PERIOD_MINUTES} دقيقة`);
   activeVisit = null;
@@ -3833,6 +3970,7 @@ window.openCategoryProducts = function(category){
     }).join('');
     document.getElementById('overlay-product-categories').classList.remove('show');
     document.getElementById('overlay-availability-products').classList.add('show');
+    loadAndRenderSetupPhotos('availability', category);
   } else {
     const products = activeProducts().filter(p => (p.category||'(بدون كاتيجوري)') === category);
     document.getElementById('inventory-products-title').textContent = category;
@@ -3861,17 +3999,14 @@ document.getElementById('availability-products-save').addEventListener('click', 
   const btn = document.getElementById('availability-products-save');
   btn.disabled = true; btn.textContent = 'بيحفظ...';
   try{
-    await fetch(ACTION_LOG_ENDPOINT, {
-      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({
-        kind:'submitAvailability', project: currentProject,
-        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
-        storeCode: store.code, storeName: store.name, items,
-      }),
+    const result = await postWithQueue({
+      kind:'submitAvailability', project: currentProject,
+      repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+      storeCode: store.code, storeName: store.name, items,
     });
     if(!answeredAvailabilityCategories.includes(productScreenSelectedCategory)) answeredAvailabilityCategories.push(productScreenSelectedCategory);
     hasEngagedWithAvailability = true;
-    showToast('اتحفظ ✓');
+    showToast(result.queued ? '📥 اتحفظ محليًا، هيترفع تلقائي أول ما النت يرجع' : 'اتحفظ ✓');
     document.getElementById('overlay-availability-products').classList.remove('show');
     openProductCategories('availability');
   }catch(e){
@@ -3906,17 +4041,14 @@ document.getElementById('inventory-quantity-save').addEventListener('click', asy
   const btn = document.getElementById('inventory-quantity-save');
   btn.disabled = true; btn.textContent = 'بيحفظ...';
   try{
-    await fetch(ACTION_LOG_ENDPOINT, {
-      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({
-        kind:'submitInventory', project: currentProject,
-        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
-        storeCode: store.code, storeName: store.name,
-        category: productScreenSelectedCategory, name: p.name, sku: p.sku,
-        cartons: cartons===''?null:Number(cartons), pieces: pieces===''?null:Number(pieces),
-      }),
+    const result = await postWithQueue({
+      kind:'submitInventory', project: currentProject,
+      repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+      storeCode: store.code, storeName: store.name,
+      category: productScreenSelectedCategory, name: p.name, sku: p.sku,
+      cartons: cartons===''?null:Number(cartons), pieces: pieces===''?null:Number(pieces),
     });
-    showToast('اتحفظ الجرد ✓');
+    showToast(result.queued ? '📥 اتحفظ محليًا، هيترفع تلقائي أول ما النت يرجع' : 'اتحفظ الجرد ✓');
     document.getElementById('overlay-inventory-quantity').classList.remove('show');
   }catch(e){
     showToast('حصلت مشكلة، جرب تاني');
@@ -3945,6 +4077,7 @@ window.openSpacesProductsList = function(category){
   `).join('');
   document.getElementById('overlay-product-categories').classList.remove('show');
   document.getElementById('overlay-spaces-products').classList.add('show');
+  loadAndRenderSetupPhotos('spaces', category);
 };
 document.getElementById('spaces-products-back').addEventListener('click', ()=>{
   document.getElementById('overlay-spaces-products').classList.remove('show');
@@ -4106,17 +4239,14 @@ document.getElementById('spaces-detail-save').addEventListener('click', async ()
   const btn = document.getElementById('spaces-detail-save');
   btn.disabled = true; btn.textContent = 'بيحفظ...';
   try{
-    await fetch(ACTION_LOG_ENDPOINT, {
-      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({
-        kind:'submitSpaces', project: currentProject,
-        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
-        storeCode: store.code, storeName: store.name,
-        category: currentSpacesProduct.category, name: p.name, sku: p.sku,
-        method: currentSpacesState.method, entries: currentSpacesState.entries,
-      }),
+    const result = await postWithQueue({
+      kind:'submitSpaces', project: currentProject,
+      repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+      storeCode: store.code, storeName: store.name,
+      category: currentSpacesProduct.category, name: p.name, sku: p.sku,
+      method: currentSpacesState.method, entries: currentSpacesState.entries,
     });
-    showToast('اتحفظت المساحة ✓');
+    showToast(result.queued ? '📥 اتحفظت محليًا، هتترفع تلقائي أول ما النت يرجع' : 'اتحفظت المساحة ✓');
     document.getElementById('overlay-spaces-detail').classList.remove('show');
     openSpacesProductsList(currentSpacesProduct.category);
   }catch(e){
@@ -4213,17 +4343,14 @@ document.getElementById('prices-detail-save').addEventListener('click', async ()
   const btn = document.getElementById('prices-detail-save');
   btn.disabled = true; btn.textContent = 'بيحفظ...';
   try{
-    await fetch(ACTION_LOG_ENDPOINT, {
-      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({
-        kind:'submitPrice', project: currentProject,
-        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
-        storeCode: store.code, storeName: store.name,
-        category: currentPricesProduct.category, name: p.name, sku: p.sku,
-        basePrice: Number(basePriceStr), hasOffer, offerPrice: hasOffer ? Number(offerPriceStr) : null,
-      }),
+    const result = await postWithQueue({
+      kind:'submitPrice', project: currentProject,
+      repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+      storeCode: store.code, storeName: store.name,
+      category: currentPricesProduct.category, name: p.name, sku: p.sku,
+      basePrice: Number(basePriceStr), hasOffer, offerPrice: hasOffer ? Number(offerPriceStr) : null,
     });
-    showToast('اتحفظ السعر ✓');
+    showToast(result.queued ? '📥 اتحفظ محليًا، هيترفع تلقائي أول ما النت يرجع' : 'اتحفظ السعر ✓');
     document.getElementById('overlay-prices-detail').classList.remove('show');
     openPricesProductsList(currentPricesProduct.category);
   }catch(e){
@@ -4317,17 +4444,14 @@ document.getElementById('expiry-detail-save').addEventListener('click', async ()
   const btn = document.getElementById('expiry-detail-save');
   btn.disabled = true; btn.textContent = 'بيحفظ...';
   try{
-    await fetch(ACTION_LOG_ENDPOINT, {
-      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({
-        kind:'submitExpiry', project: currentProject,
-        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
-        storeCode: store.code, storeName: store.name,
-        category: currentExpiryProduct.category, name: p.name, sku: p.sku,
-        entries: currentExpiryEntries,
-      }),
+    const result = await postWithQueue({
+      kind:'submitExpiry', project: currentProject,
+      repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+      storeCode: store.code, storeName: store.name,
+      category: currentExpiryProduct.category, name: p.name, sku: p.sku,
+      entries: currentExpiryEntries,
     });
-    showToast('اتحفظت تواريخ الانتهاء ✓');
+    showToast(result.queued ? '📥 اتحفظت محليًا، هتترفع تلقائي أول ما النت يرجع' : 'اتحفظت تواريخ الانتهاء ✓');
     document.getElementById('overlay-expiry-detail').classList.remove('show');
     openExpiryProductsList(currentExpiryProduct.category);
   }catch(e){
@@ -4436,16 +4560,13 @@ document.getElementById('promo-materials-save').addEventListener('click', async 
   const btn = document.getElementById('promo-materials-save');
   btn.disabled = true; btn.textContent = 'بيحفظ...';
   try{
-    await fetch(ACTION_LOG_ENDPOINT, {
-      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({
-        kind:'submitPromoMaterials', project: currentProject,
-        repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
-        storeCode: store.code, storeName: store.name,
-        items: currentPromoEntries,
-      }),
+    const result = await postWithQueue({
+      kind:'submitPromoMaterials', project: currentProject,
+      repCode: state.repCode, coordinatorName: repNamesMap[state.repCode]||'',
+      storeCode: store.code, storeName: store.name,
+      items: currentPromoEntries,
     });
-    showToast('اتحفظت مواد الدعاية ✓');
+    showToast(result.queued ? '📥 اتحفظت محليًا، هتترفع تلقائي أول ما النت يرجع' : 'اتحفظت مواد الدعاية ✓');
     document.getElementById('overlay-promo-materials').classList.remove('show');
     document.getElementById('overlay-visit').classList.add('show');
   }catch(e){
@@ -4480,20 +4601,17 @@ document.getElementById('visit-finish').addEventListener('click', ()=>{
     }
   }
   logAction('إنهاء زيارة', store.code, store.name, '');
-  fetch(ACTION_LOG_ENDPOINT, {
-    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({
-      kind:'logVisit', event:'end', project: currentProject,
-      visitId: state.currentVisitId,
-      repCode: state.repCode,
-      coordinatorName: repNamesMap[state.repCode] || '',
-      storeName: store.name, storeCode: store.code,
-      lat: store.lat, lng: store.lng,
-      deviceFingerprint: getDeviceFingerprint(),
-      channel: store.channel || '',
-      closureType: 'normal',
-    }),
-  }).catch(()=>{});
+  postWithQueue({
+    kind:'logVisit', event:'end', project: currentProject,
+    visitId: state.currentVisitId,
+    repCode: state.repCode,
+    coordinatorName: repNamesMap[state.repCode] || '',
+    storeName: store.name, storeCode: store.code,
+    lat: store.lat, lng: store.lng,
+    deviceFingerprint: getDeviceFingerprint(),
+    channel: store.channel || '',
+    closureType: 'normal',
+  });
   activeVisit = null;
   updateActiveVisitBanner();
   stopVisitTimerDisplay();
@@ -4999,15 +5117,17 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
       document.getElementById('login-btn').textContent = 'دخول';
     }
   }
-  if(role === 'admin' || role === 'viewAdmin'){
+  if(role === 'admin' || role === 'viewAdmin' || role === 'filterOnly'){
     // الأدمن دلوقتي بيشوف ويعدّل على بيانات كل المنسقين مع بعض في نفس المشروع، من غير ما يختار منسق بعينه
     state.isAdmin = true;
     state.isViewOnlyAdmin = (role === 'viewAdmin'); // أدمن ثاني بصلاحية "شوف بس" حاليًا
+    state.isFilterOnlyAdmin = (role === 'filterOnly'); // حساب مقصور على الفلترة بس، مفيش أي حاجة تانية
     state.repCode = 'ALL';
     state.readOnly = false;
   } else {
     state.isAdmin = false;
     state.isViewOnlyAdmin = false;
+    state.isFilterOnlyAdmin = false;
     state.repCode = user;
     state.readOnly = false;
 
@@ -5028,14 +5148,31 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   if(state.isAdmin){
     state.stores = [];
     state.zones = [];
-    const allCodes = [];
-    for(let i=1;i<=BASE_REP_COUNT;i++) allCodes.push(BASE_REP_PREFIX+i);
-    customReps.forEach(r=>{ if(!allCodes.includes(r.code)) allCodes.push(r.code); });
-    for(const code of allCodes){
-      const s = await loadStores(code);
-      s.forEach(st => state.stores.push(Object.assign({}, st, {repCode: code})));
-      const z = await loadZones(code);
-      z.forEach(zn => state.zones.push(Object.assign({}, zn, {repCode: code})));
+    try{
+      const [storesRes, zonesRes] = await Promise.all([
+        fetch(ACTION_LOG_ENDPOINT + '?action=kvGetAllByPrefix&project=' + encodeURIComponent(currentProject) + '&prefix=' + encodeURIComponent(pk('stores:'))).then(r=>r.json()),
+        fetch(ACTION_LOG_ENDPOINT + '?action=kvGetAllByPrefix&project=' + encodeURIComponent(currentProject) + '&prefix=' + encodeURIComponent(pk('zones:'))).then(r=>r.json()),
+      ]);
+      if(storesRes.ok){
+        Object.keys(storesRes.values).forEach(key=>{
+          const code = key.substring(pk('stores:').length);
+          try{
+            const parsed = JSON.parse(storesRes.values[key]);
+            if(Array.isArray(parsed)) parsed.forEach(st => state.stores.push(Object.assign({}, st, {repCode: code})));
+          }catch(e){ /* تجاهل صف تالف */ }
+        });
+      }
+      if(zonesRes.ok){
+        Object.keys(zonesRes.values).forEach(key=>{
+          const code = key.substring(pk('zones:').length);
+          try{
+            const parsed = JSON.parse(zonesRes.values[key]);
+            if(Array.isArray(parsed)) parsed.forEach(zn => state.zones.push(Object.assign({}, zn, {repCode: code})));
+          }catch(e){ /* تجاهل صف تالف */ }
+        });
+      }
+    }catch(e){
+      showToast('حصلت مشكلة في تحميل بيانات المنسقين، جرب تسجل دخول تاني', true);
     }
   } else {
     state.stores = await loadStores(state.repCode);
@@ -5056,18 +5193,22 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('current-user-label').textContent = state.isAdmin
-    ? (state.isViewOnlyAdmin ? 'admin001 — عرض فقط' : 'admin — كل المنسقين')
+    ? (state.isFilterOnlyAdmin ? 'mmm — فلترة بس' : state.isViewOnlyAdmin ? 'admin001 — عرض فقط' : 'admin — كل المنسقين')
     : state.repCode;
-  document.getElementById('toggle-all-stores-label').style.display = state.isAdmin ? 'flex' : 'none';
+  document.getElementById('btn-show-all-stores').style.display = (state.isAdmin && !state.isFilterOnlyAdmin) ? 'flex' : 'none';
+  document.getElementById('btn-export').style.display = (state.isAdmin && !state.isFilterOnlyAdmin) ? 'flex' : 'none';
 
-  const fullAdminOnly = state.isAdmin && !state.isViewOnlyAdmin; // أزرار الإضافة/التعديل/الحذف كلها للأدمن الكامل بس
+  const fullAdminOnly = state.isAdmin && !state.isViewOnlyAdmin && !state.isFilterOnlyAdmin; // أزرار الإضافة/التعديل/الحذف كلها للأدمن الكامل بس
   document.getElementById('btn-add-mode').style.display = fullAdminOnly ? 'flex' : 'none';
 
   ['btn-import','btn-bulk-zone'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = fullAdminOnly ? 'flex' : 'none'; });
+  if(state.isFilterOnlyAdmin){
+    ['btn-locate','btn-client-list','btn-radar','btn-add-mode'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  }
   document.getElementById('btn-manage-surveys').style.display = fullAdminOnly ? 'flex' : 'none';
-  document.getElementById('btn-reports').style.display = state.isAdmin ? 'flex' : 'none'; // متاح للاتنين (عرض بس)
-  document.getElementById('btn-live-tracker').style.display = state.isAdmin ? 'flex' : 'none'; // متاح للاتنين (عرض بس)
-  document.getElementById('btn-open-filtering').style.display = state.isAdmin ? 'flex' : 'none'; // متاح للاتنين (عرض بس)
+  document.getElementById('btn-reports').style.display = (state.isAdmin && !state.isFilterOnlyAdmin) ? 'flex' : 'none'; // متاح للأدمن الكامل والعرض بس
+  document.getElementById('btn-live-tracker').style.display = (state.isAdmin && !state.isFilterOnlyAdmin) ? 'flex' : 'none';
+  document.getElementById('btn-open-filtering').style.display = state.isAdmin ? 'flex' : 'none'; // متاح لكل أنواع الأدمن (بما فيهم فلترة بس)
   document.getElementById('btn-create-project').style.display = fullAdminOnly ? 'flex' : 'none';
   document.getElementById('btn-rename-project').style.display = fullAdminOnly ? 'flex' : 'none';
   document.getElementById('btn-open-coordinators-menu').style.display = fullAdminOnly ? 'flex' : 'none';
@@ -5079,18 +5220,20 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   loadSurveysFromServer(); // بنجيب الاستبيانات في الخلفية، مش لازم نستنى
   loadRepNames(); // وأسماء المنسقين كمان في الخلفية
   loadProducts(); // والمنتجات كمان
+  updateOfflineQueueIndicator();
+  retryOfflineQueue();
   document.getElementById('zone-counter-chip').style.display = state.isAdmin ? 'none' : 'flex';
   if(!state.isAdmin){
     startLiveLocationTracking(); // تتبع مباشر للمنسق وهو ماشي، مش هيحتاج يدوس "موقعي" كل شوية
     refreshZoneCounterChip();
   }
 
-  const editButtons = ['btn-add-mode','btn-export','btn-locate'];
-  editButtons.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = state.readOnly ? 'none' : 'flex'; });
-
   initMapOnce();
   renderMarkers();
   if(state.repCode!=='ALL') setTimeout(maybeRemindMonthlyMinimum, 1200);
+  if(state.isFilterOnlyAdmin){
+    setTimeout(()=>{ document.getElementById('btn-open-filtering').click(); }, 300);
+  }
 });
 
 /* منطق تسجيل الخروج بقى تحت في قسم "Exit confirmation with countdown" مع مودال التأكيد والعداد */
@@ -5110,7 +5253,7 @@ function initMapOnce(){
   myLocationLayer = L.layerGroup().addTo(map);
   directionLayer = L.layerGroup().addTo(map);
   cluster = L.markerClusterGroup({maxClusterRadius:45});
-  if(document.getElementById('toggle-all-stores').checked) map.addLayer(cluster);
+  map.addLayer(cluster);
 
   map.on('click', (e)=>{
     if(state.addMode){
@@ -5720,9 +5863,17 @@ let zoneRenderToken = 0;
 let dayRouteRenderToken = 0;
 const toggleZonesCheckbox = document.getElementById('toggle-zones');
 if(toggleZonesCheckbox) toggleZonesCheckbox.addEventListener('change', renderZones);
-document.getElementById('toggle-all-stores').addEventListener('change', (e)=>{
-  if(e.target.checked){ map.addLayer(cluster); }
-  else { map.removeLayer(cluster); }
+document.getElementById('btn-show-all-stores').addEventListener('click', ()=>{
+  map.addLayer(cluster);
+  if(radarActive){
+    radarActive = false;
+    document.getElementById('btn-radar').classList.remove('active');
+    if(radarCircleLayer){ map.removeLayer(radarCircleLayer); radarCircleLayer = null; }
+  }
+  const q = document.getElementById('search-box');
+  if(q) q.value = '';
+  renderMarkers();
+  showToast('اتعرضت كل المحلات على الخريطة ✓');
 });
 
 function zoneNameOf(store){
