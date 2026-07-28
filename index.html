@@ -3202,9 +3202,9 @@ window.openFilterForm = function(sectionKey){
     mode: 'range',
     dateFormat: 'Y-m-d',
     showMonths: 2,
-    defaultDate: [ninetyDaysAgo, today],
     locale: { rangeSeparator: ' → ' },
   });
+  filterDatePickerInstance.setDate([ninetyDaysAgo, today], true);
 
   const repSelect = document.getElementById('filter-rep-select');
   repSelect.innerHTML = '<option value="">كل المنسقين</option>' +
@@ -3214,7 +3214,7 @@ window.openFilterForm = function(sectionKey){
   document.getElementById('filter-category-wrap').style.display = showCategory ? 'block' : 'none';
   document.getElementById('filter-product-wrap').style.display = showCategory ? 'block' : 'none';
   if(showCategory){
-    const cats = uniqueCategories(allProducts());
+    const cats = uniqueCategories(allProducts);
     document.getElementById('filter-category-select').innerHTML = '<option value="">كل الكاتيجوريز</option>' +
       cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
   }
