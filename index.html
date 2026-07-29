@@ -532,19 +532,35 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
       <input type="text" id="products-admin-search" placeholder="Search for product..." style="flex:1;min-width:160px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);">
       <button class="btn-solid" id="btn-add-product">+ Add Product</button>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <button class="btn-ghost" id="btn-import-products-menu" style="flex:1;">Import Products</button>
-      <button class="btn-ghost" id="btn-update-products-menu" style="flex:1;">🔄 Update Products</button>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <button class="btn-ghost" id="btn-import-products-menu" style="flex:1;min-width:120px;">Import Products</button>
+      <button class="btn-ghost" id="btn-update-products-menu" style="flex:1;min-width:120px;">🔄 Update Products</button>
+      <button class="btn-ghost" id="btn-disabled-products" style="flex:1;min-width:120px;">Disabled Products</button>
     </div>
     <p class="hint" id="products-admin-count"></p>
     <div id="products-admin-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;"></div>
   </div>
 </div>
 
+<!-- ============ أدمن: المنتجات المعطّلة ============ -->
+<div class="fullpage" id="overlay-disabled-products">
+  <div class="fullpage-header">
+    <button class="fullpage-back" id="disabled-products-close">‹</button>
+    <h3>Disabled Products</h3>
+    <span style="width:36px;"></span>
+  </div>
+  <div class="fullpage-body">
+    <input type="text" id="disabled-products-search" placeholder="Search for product..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);margin-bottom:12px;">
+    <p class="hint" id="disabled-products-count"></p>
+    <p class="hint" style="margin-bottom:10px;">دوس على ✓ عشان ترجّع المنتج نشط تاني ويظهر عند المنسقين.</p>
+    <div id="disabled-products-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
 <div class="fullpage" id="overlay-add-product">
   <div class="fullpage-header">
     <button class="fullpage-back" id="add-product-cancel">‹</button>
-    <h3>Add Product</h3>
+    <h3 id="add-product-title">Add Product</h3>
     <span style="width:36px;"></span>
   </div>
   <div class="fullpage-body">
@@ -2919,30 +2935,125 @@ document.getElementById('products-admin-search').addEventListener('input', ()=> 
 
 function renderProductsAdminList(){
   const q = document.getElementById('products-admin-search').value.trim().toLowerCase();
-  const filtered = !q ? allProducts : allProducts.filter(p =>
+  const activeOnly = allProducts.filter(p=>p.active);
+  const filtered = !q ? activeOnly : activeOnly.filter(p =>
     String(p.sku).toLowerCase().includes(q) || String(p.name).toLowerCase().includes(q)
   );
-  document.getElementById('products-admin-count').textContent = `Active Products (${activeProducts().length}) — إجمالي: ${allProducts.length}`;
+  const disabledCount = allProducts.filter(p=>!p.active).length;
+  document.getElementById('products-admin-count').textContent = `Active Products (${activeOnly.length}) — Disabled: ${disabledCount}`;
   const box = document.getElementById('products-admin-list');
   if(filtered.length===0){
-    box.innerHTML = '<p class="hint">مفيش منتجات لسه.</p>';
+    box.innerHTML = '<p class="hint">مفيش منتجات نشطة لسه.</p>';
     return;
   }
   box.innerHTML = filtered.map(p=>`
     <div style="display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:10px;padding:10px;">
       ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
-      <div style="flex:1;">
+      <div style="flex:1;min-width:0;">
         <div style="font-weight:700;">${escapeHtml(p.name)}</div>
         <div style="font-size:12px;color:var(--ink-soft);" class="mono">${escapeHtml(p.sku)} — ${escapeHtml(p.category||'')}${p.subCategory ? ' / '+escapeHtml(p.subCategory) : ''}</div>
       </div>
-      <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${p.active?'var(--green-tint)':'var(--red-tint)'};color:${p.active?'var(--green)':'var(--red)'};font-weight:700;">${p.active?'Active':'Inactive'}</span>
+      <button type="button" title="تعديل" onclick="openEditProduct('${escapeHtml(String(p.sku)).replace(/'/g,"\\'")}')" style="background:var(--primary-tint);color:var(--primary-dark);border:none;border-radius:8px;width:36px;height:36px;font-size:16px;cursor:pointer;">✏️</button>
+      <button type="button" title="تعطيل" onclick="disableProduct('${escapeHtml(String(p.sku)).replace(/'/g,"\\'")}')" style="background:var(--red-tint);color:var(--red);border:none;border-radius:8px;width:36px;height:36px;font-size:16px;cursor:pointer;">🗑️</button>
     </div>
   `).join('');
 }
 
+/* ---------- تعطيل / تفعيل منتج ---------- */
+async function setProductActive(sku, active){
+  const p = allProducts.find(pr=>String(pr.sku)===String(sku));
+  if(!p) return false;
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        kind:'importProducts', project: currentProject,
+        products: [{ sku: p.sku, name: p.name, category: p.category, subCategory: p.subCategory||'', brand: p.brand||'', price: p.price!=null?p.price:'', auditable: !!p.auditable, position: p.position||'', active: active, image: p.image||'' }],
+      }),
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error('فشل');
+    p.active = active;
+    return true;
+  }catch(e){ return false; }
+}
+window.disableProduct = async function(sku){
+  const p = allProducts.find(pr=>String(pr.sku)===String(sku));
+  if(!p) return;
+  if(!confirm(`متأكد عايز تعطّل "${p.name}"؟\n\nهيختفي من القايمة دي ومن عند كل المنسقين، وتقدر ترجّعه في أي وقت من "Disabled Products".`)) return;
+  showToast('بيتعطّل...');
+  const ok = await setProductActive(sku, false);
+  showToast(ok ? 'اتعطّل المنتج ✓' : 'حصلت مشكلة، جرب تاني');
+  renderProductsAdminList();
+};
+window.enableProduct = async function(sku){
+  showToast('بيترجّع...');
+  const ok = await setProductActive(sku, true);
+  showToast(ok ? 'رجع المنتج نشط تاني ✓' : 'حصلت مشكلة، جرب تاني');
+  renderDisabledProductsList();
+  renderProductsAdminList();
+};
+function renderDisabledProductsList(){
+  const q = document.getElementById('disabled-products-search').value.trim().toLowerCase();
+  const disabledOnly = allProducts.filter(p=>!p.active);
+  const filtered = !q ? disabledOnly : disabledOnly.filter(p =>
+    String(p.sku).toLowerCase().includes(q) || String(p.name).toLowerCase().includes(q)
+  );
+  document.getElementById('disabled-products-count').textContent = `Disabled Products (${disabledOnly.length})`;
+  const box = document.getElementById('disabled-products-list');
+  if(filtered.length===0){
+    box.innerHTML = '<p class="hint">مفيش منتجات معطّلة.</p>';
+    return;
+  }
+  box.innerHTML = filtered.map(p=>`
+    <div style="display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:10px;padding:10px;opacity:.75;">
+      ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;">${escapeHtml(p.name)}</div>
+        <div style="font-size:12px;color:var(--ink-soft);" class="mono">${escapeHtml(p.sku)} — ${escapeHtml(p.category||'')}</div>
+      </div>
+      <button type="button" title="ترجيع" onclick="enableProduct('${escapeHtml(String(p.sku)).replace(/'/g,"\\'")}')" style="background:var(--green-tint);color:var(--green);border:none;border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;">✓</button>
+    </div>
+  `).join('');
+}
+document.getElementById('btn-disabled-products').addEventListener('click', ()=>{
+  document.getElementById('disabled-products-search').value = '';
+  document.getElementById('overlay-disabled-products').classList.add('show');
+  renderDisabledProductsList();
+});
+document.getElementById('disabled-products-close').addEventListener('click', ()=>{
+  document.getElementById('overlay-disabled-products').classList.remove('show');
+});
+document.getElementById('disabled-products-search').addEventListener('input', renderDisabledProductsList);
+
+/* ---------- تعديل منتج (نفس فورمة الإضافة بالظبط + الصورة) ---------- */
+let editingProductSku = null;
+window.openEditProduct = function(sku){
+  const p = allProducts.find(pr=>String(pr.sku)===String(sku));
+  if(!p) return;
+  editingProductSku = sku;
+  document.getElementById('add-product-title').textContent = 'Edit Product';
+  document.getElementById('add-product-name').value = p.name || '';
+  document.getElementById('add-product-category').value = p.category || '';
+  document.getElementById('add-product-sku').value = p.sku || '';
+  document.getElementById('add-product-sku').disabled = true; // الكود مفتاح المنتج، مينفعش يتغيّر أثناء التعديل
+  document.getElementById('add-product-subcategory').value = p.subCategory || '';
+  document.getElementById('add-product-brand').value = p.brand || '';
+  document.getElementById('add-product-price').value = p.price != null ? p.price : '';
+  document.getElementById('add-product-photo').value = '';
+  addProductPhotoFile = null;
+  const preview = document.getElementById('add-product-photo-preview');
+  if(p.image){ preview.src = p.image; preview.style.display = 'block'; }
+  else { preview.style.display = 'none'; }
+  document.getElementById('overlay-add-product').classList.add('show');
+};
+
 /* ---------- Add Product ---------- */
 let addProductPhotoFile = null;
 document.getElementById('btn-add-product').addEventListener('click', ()=>{
+  editingProductSku = null;
+  document.getElementById('add-product-title').textContent = 'Add Product';
+  document.getElementById('add-product-sku').disabled = false;
   document.getElementById('add-product-name').value = '';
   document.getElementById('add-product-category').value = '';
   document.getElementById('add-product-sku').value = '';
@@ -2980,10 +3091,12 @@ document.getElementById('add-product-save').addEventListener('click', async ()=>
     showToast('لازم تملى Product Name وCategory وSKU على الأقل');
     return;
   }
+  const isEditing = !!editingProductSku;
+  const existing = isEditing ? allProducts.find(pr=>String(pr.sku)===String(editingProductSku)) : null;
   const btn = document.getElementById('add-product-save');
   btn.disabled = true;
   btn.textContent = 'بيحفظ...';
-  let imageUrl = '';
+  let imageUrl = existing ? (existing.image || '') : '';
   try{
     if(addProductPhotoFile){
       imageUrl = await uploadStorePhoto(addProductPhotoFile, 'product_'+sku, sku);
@@ -2992,13 +3105,21 @@ document.getElementById('add-product-save').addEventListener('click', async ()=>
       method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({
         kind:'importProducts', project: currentProject,
-        products: [{ sku, name, category, subCategory, brand, price, auditable:false, position:'', active:true, image: imageUrl }],
+        products: [{
+          sku, name, category, subCategory, brand, price,
+          auditable: existing ? !!existing.auditable : false,
+          position: existing ? (existing.position||'') : '',
+          active: existing ? !!existing.active : true,
+          image: imageUrl,
+        }],
       }),
     });
     const data = await res.json();
     if(!data.ok) throw new Error(data.error||'فشل الحفظ');
-    showToast('اتحفظ المنتج ✓');
+    showToast(isEditing ? 'اتعدّل المنتج ✓' : 'اتحفظ المنتج ✓');
     document.getElementById('overlay-add-product').classList.remove('show');
+    document.getElementById('add-product-sku').disabled = false;
+    editingProductSku = null;
     await loadProducts();
     renderProductsAdminList();
   }catch(err){
