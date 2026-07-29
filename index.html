@@ -1624,13 +1624,27 @@ const state = {
 
 /* ===================== Storage ===================== */
 async function loadStores(repCode){
+  const cacheKey = 'masar_stores_cache_' + currentProject + '_' + repCode;
   try{
     const res = await window.storage.get(pk('stores:'+repCode), true);
     if(res && res.value){
       const parsed = JSON.parse(res.value);
-      if(Array.isArray(parsed) && parsed.length>0) return parsed;
+      if(Array.isArray(parsed) && parsed.length>0){
+        // نحفظ نسخة على الموبايل، عشان لو فتح التطبيق بعدين وهو في مكان مقطوع يلاقي محلاته موجودة
+        try{ localStorage.setItem(cacheKey, JSON.stringify(parsed)); }catch(e){ /* المساحة ممتلئة */ }
+        return parsed;
+      }
     }
-  }catch(e){ /* no stored value yet */ }
+  }catch(e){
+    // مفيش نت — نرجع لآخر نسخة محفوظة على الجهاز بدل ما نسيبه بخريطة فاضية
+    try{
+      const cached = localStorage.getItem(cacheKey);
+      if(cached){
+        const parsed = JSON.parse(cached);
+        if(Array.isArray(parsed) && parsed.length>0) return parsed;
+      }
+    }catch(err){ /* تجاهل */ }
+  }
   // البيانات القديمة دي خاصة بمشروع gorilla بس، أي مشروع تاني لازم يبدأ فاضي تمامًا من غير ما ياخدها
   if(currentProject !== 'gorilla') return [];
   const seed = (window.__SEED_DATA__ && window.__SEED_DATA__[repCode]) ? window.__SEED_DATA__[repCode] : null;
@@ -1697,15 +1711,19 @@ async function retryOfflineQueue(){
   const stillFailed = [];
   for(const item of queue){
     try{
-      const controller = new AbortController();
-      const timer = setTimeout(()=>controller.abort(), 12000);
-      const res = await fetch(ACTION_LOG_ENDPOINT, {
-        method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify(item.payload),
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      if(!res.ok) throw new Error('bad status');
+      if(item.combo){
+        await processQueuedCombo(item);
+      } else {
+        const controller = new AbortController();
+        const timer = setTimeout(()=>controller.abort(), 12000);
+        const res = await fetch(ACTION_LOG_ENDPOINT, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify(item.payload),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if(!res.ok) throw new Error('bad status');
+      }
     }catch(e){
       stillFailed.push(item);
     }
@@ -1718,6 +1736,118 @@ async function retryOfflineQueue(){
 }
 setInterval(retryOfflineQueue, 30000);
 window.addEventListener('online', retryOfflineQueue);
+
+/* ============================================================
+   طابور مركّب (صور + بيانات مع بعض) — للأقسام اللي فيها رفع صور
+   جوه عملية الحفظ (المساحات، مواد الدعاية، الاستبيان، صور التنسيق).
+   لو النت مقطوع، الصور نفسها (base64) والبيانات بيتقفوا مع بعض،
+   وبيترفعوا الاتنين بالترتيب الصح أول ما النت يرجع.
+   ============================================================ */
+function fileToBase64Simple(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+/* بيحاول يرفع الصور فعليًا؛ لو فشل، بيرجع الصور نفسها بصيغة base64 جاهزة للطابور بدل ما يرمي خطأ يوقف كل حاجة */
+async function tryUploadPhotosOrPrepareQueue(files, quality){
+  const urls = [];
+  for(const file of files){
+    try{
+      const url = quality==='high' ? await uploadStorePhoto(file, 'combo', '') : await uploadMediumQualityPhoto(file, 'combo', '');
+      urls.push(url);
+    }catch(e){
+      // فشل الرفع — نرجع إشارة واضحة إن محتاجين نحط الطلب كله في الطابور
+      return { ok:false };
+    }
+  }
+  return { ok:true, urls };
+}
+/* بيحوّل كل الصور المرفقة لـ base64 (تجهيز للطابور)، مستخدمة لو أول محاولة رفع فشلت */
+async function prepareComboPhotosForQueue(fileGroups){
+  // fileGroups: [{key, files:[File,...], quality}] -> بيرجع نفس الشكل بس بدل الملفات base64 (مضغوطة بنفس جودة الرفع العادي)
+  const result = [];
+  for(const group of fileGroups){
+    const items = [];
+    for(const file of group.files){
+      const base64 = group.quality==='high' ? await resizeImageToBase64(file, 2000, 0.88) : await resizeImageToBase64(file, 1000, 0.6);
+      items.push({ base64, mimeType: 'image/jpeg' });
+    }
+    result.push({ key: group.key, items, quality: group.quality });
+  }
+  return result;
+}
+/* بيرفع كل الصور المجهزة (base64) فعليًا */
+async function uploadPreparedComboPhotos(preparedGroups){
+  for(const group of preparedGroups){
+    for(const item of group.items){
+      const res = await fetch(ACTION_LOG_ENDPOINT, {
+        method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({
+          kind: 'uploadImage',
+          project: currentProject,
+          imageBase64: item.base64, mimeType: item.mimeType || 'image/jpeg',
+          fileName: 'combo_'+Date.now()+'.jpg', storeCode: '',
+        }),
+      });
+      const data = await res.json();
+      if(!data.ok) throw new Error('فشل رفع صورة من الطابور');
+    }
+  }
+}
+/* بيتنفذ وقت إعادة المحاولة — بيرفع الصور المؤجّلة، وبعدين يبعت نفس الطلب النهائي المحفوظ (بيانات عادية، مش دالة، عشان يفضل شغال حتى لو الصفحة اتقفلت واتفتحت تاني) */
+async function processQueuedCombo(item){
+  await uploadPreparedComboPhotos(item.preparedPhotos || []);
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), 15000);
+  const res = await fetch(ACTION_LOG_ENDPOINT, {
+    method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(item.finalPayload),
+    signal: controller.signal,
+  });
+  clearTimeout(timer);
+  if(!res.ok) throw new Error('bad status');
+}
+/* الدالة الرئيسية اللي بتستخدمها كل الأقسام: بتحاول ترفع وتحفظ عادي، ولو فشلت بسبب النت، بتحط كل حاجة (صور+بيانات) في الطابور سوا.
+   finalPayload لازم يكون بيانات عادية جاهزة (Object قابل للتحويل لـ JSON)، مش دالة — عشان يفضل شغال حتى بعد إغلاق/فتح الصفحة تاني. */
+async function saveWithPhotosResilient(fileGroups, finalPayload){
+  // fileGroups: [{key, files:[File...], quality:'high'|'medium'}]
+  try{
+    for(const group of fileGroups){
+      for(const file of group.files){
+        await (group.quality==='high' ? uploadStorePhoto(file, 'x', '') : uploadMediumQualityPhoto(file, 'x', ''));
+      }
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), 15000);
+    const res = await fetch(ACTION_LOG_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(finalPayload),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if(!res.ok) throw new Error('bad status');
+    return { queued:false, ok:true };
+  }catch(e){
+    // فشل — نجهّز كل حاجة (صور base64 + الطلب النهائي بالظبط) ونحطها في الطابور
+    try{
+      const preparedPhotos = await prepareComboPhotosForQueue(fileGroups.map(g=>({key:g.key, files:g.files, quality:g.quality})));
+      const queue = getOfflineQueue();
+      queue.push({
+        combo:true,
+        queuedAt: Date.now(),
+        preparedPhotos,
+        finalPayload, // بيانات عادية قابلة للتخزين والاسترجاع بالكامل، مش دالة
+      });
+      setOfflineQueue(queue);
+      return { queued:true, ok:true };
+    }catch(err){
+      return { queued:false, ok:false };
+    }
+  }
+}
 
 /* ===================== المشاريع (Multi-Project) ===================== */
 // كل مشروع منفصل تمامًا: منسقين مختلفة، بيانات مختلفة، شيت جوجل شيت ودرايف منفصلين.
@@ -4804,47 +4934,40 @@ document.getElementById('survey-fill-submit').addEventListener('click', async ()
   btn.disabled = true;
   btn.textContent = 'بيترفع...';
 
-  try{
-    for(const q of qs){
-      if(!isSurveyQuestionVisible(q)) continue;
-      if(q.type==='photo' || q.type==='multiphoto'){
-        const newFiles = currentFillNewPhotoFiles[q.id] || [];
-        for(let i=0;i<newFiles.length;i++){
-          btn.textContent = newFiles.length>1 ? `بيرفع صورة ${i+1} من ${newFiles.length}...` : 'بيرفع الصورة...';
-          // بنرفعها في نفس فولدر المحل على درايف، مفيش لينك فردي بيتسجل - الرد كله بيرجع لرابط الفولدر بس
-          await uploadStorePhoto(newFiles[i], (store?store.code:'survey')+'_'+q.id+'_'+(i+1), store?store.code:'');
-        }
-      }
+  const photoFileGroups = []; // {key, files:[File...], quality:'high'}
+  for(const q of qs){
+    if(!isSurveyQuestionVisible(q)) continue;
+    if(q.type==='photo' || q.type==='multiphoto'){
+      const newFiles = currentFillNewPhotoFiles[q.id] || [];
+      if(newFiles.length>0) photoFileGroups.push({key:q.id, files:newFiles, quality:'high'});
     }
-    const readableLines = [];
-    const answersToSend = {};
-    qs.forEach(q=>{
-      if(!isSurveyQuestionVisible(q)) return;
-      const v = currentFillAnswers[q.id];
-      answersToSend[q.id] = v != null ? v : '';
-      readableLines.push(`${q.text}: ${Array.isArray(v) ? v.join('، ') : (v!=null?v:'')}`);
-    });
+  }
+  const readableLines = [];
+  const answersToSend = {};
+  qs.forEach(q=>{
+    if(!isSurveyQuestionVisible(q)) return;
+    const v = currentFillAnswers[q.id];
+    answersToSend[q.id] = v != null ? v : '';
+    readableLines.push(`${q.text}: ${Array.isArray(v) ? v.join('، ') : (v!=null?v:'')}`);
+  });
+  const finalPayload = {
+    kind:'submitSurveyResponse',
+    project: currentProject,
+    repCode: state.repCode,
+    storeCode: store ? store.code : '',
+    storeName: store ? store.name : '',
+    surveyName: survey.name,
+    surveyId: survey.id,
+    answers: answersToSend,
+    readableSummary: readableLines.join(' | '),
+  };
 
-    const res = await fetch(ACTION_LOG_ENDPOINT, {
-      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({
-        kind:'submitSurveyResponse',
-        project: currentProject,
-        repCode: state.repCode,
-        storeCode: store ? store.code : '',
-        storeName: store ? store.name : '',
-        surveyName: survey.name,
-        surveyId: survey.id,
-        answers: answersToSend,
-        readableSummary: readableLines.join(' | '),
-      }),
-    });
-    const data = await res.json();
-    if(!data.ok) throw new Error(data.error||'فشل الإرسال');
-    showToast('اتبعت الاستبيان بنجاح ✓');
+  const result = await saveWithPhotosResilient(photoFileGroups, finalPayload);
+  if(result.ok){
+    showToast(result.queued ? '📥 الاستبيان اتحفظ محليًا (بما فيه الصور)، هيترفع تلقائي أول ما النت يرجع' : 'اتبعت الاستبيان بنجاح ✓');
     document.getElementById('overlay-survey-fill').classList.remove('show');
-  }catch(err){
-    showToast('حصلت مشكلة في إرسال الاستبيان، جرب تاني');
+  } else {
+    showToast('حصلت مشكلة في حفظ الاستبيان، جرب تاني');
   }
   btn.disabled = false;
   btn.textContent = 'إرسال الاستبيان';
@@ -4957,11 +5080,23 @@ async function loadRepNames(){
 let allProducts = [];
 async function loadProducts(){
   if(!ACTION_LOG_ENDPOINT){ allProducts = []; return; }
+  const cacheKey = 'masar_products_cache_' + currentProject;
   try{
     const res = await fetch(ACTION_LOG_ENDPOINT + '?action=getProducts&project=' + encodeURIComponent(currentProject));
     const data = await res.json();
     allProducts = (data.ok && Array.isArray(data.products)) ? data.products : [];
-  }catch(e){ allProducts = []; }
+    // نحفظ نسخة على الموبايل نفسه، عشان لو المنسق فتح التطبيق بعدين وهو في مكان مقطوع يلاقي المنتجات موجودة
+    if(allProducts.length > 0){
+      try{ localStorage.setItem(cacheKey, JSON.stringify(allProducts)); }catch(e){ /* المساحة ممتلئة، نكمل عادي */ }
+    }
+  }catch(e){
+    // مفيش نت — نرجع لآخر نسخة محفوظة على الجهاز بدل ما نسيبه بشاشة فاضية
+    try{
+      const cached = localStorage.getItem(cacheKey);
+      allProducts = cached ? JSON.parse(cached) : [];
+      if(allProducts.length > 0) showToast('📴 بتشتغل من نسخة المنتجات المحفوظة على الموبايل (النت مش متاح)');
+    }catch(err){ allProducts = []; }
+  }
 }
 function activeProducts(){ return allProducts.filter(p=>p.active); }
 function auditableActiveProducts(){ return allProducts.filter(p=>p.active && p.auditable); }
@@ -5058,17 +5193,32 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   document.getElementById('login-btn').disabled = true;
   document.getElementById('login-btn').textContent = 'بيتأكد من البيانات...';
   let loginResult;
+  let isOfflineLogin = false;
   try{
     const res = await fetch(ACTION_LOG_ENDPOINT, {
       method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({ kind:'login', project: currentProject, username: typedUser, password: pass }),
     });
     loginResult = await res.json();
+    // نسجّل إن اليوزر ده اتأكد فعليًا من السيرفر على الجهاز ده (من غير أي باسورد)، عشان نسمحله يشتغل أوفلاين بعد كده
+    if(loginResult.ok){
+      try{
+        localStorage.setItem('masar_verified_user_' + currentProject, JSON.stringify({ username: loginResult.username, role: loginResult.role || 'coordinator' }));
+      }catch(e){ /* تجاهل */ }
+    }
   }catch(e){
-    document.getElementById('login-btn').disabled = false;
-    document.getElementById('login-btn').textContent = 'دخول';
-    err.textContent = 'حصلت مشكلة في الاتصال، جرب تاني';
-    return;
+    // النت مقطوع — نسمح بالدخول بس لو نفس اليوزر ده اتأكد قبل كده من السيرفر على الجهاز ده بالظبط
+    let verified = null;
+    try{ verified = JSON.parse(localStorage.getItem('masar_verified_user_' + currentProject) || 'null'); }catch(err){ verified = null; }
+    if(verified && String(verified.username).trim().toLowerCase() === typedUser.trim().toLowerCase() && verified.role === 'coordinator'){
+      loginResult = { ok:true, username: verified.username, role: verified.role };
+      isOfflineLogin = true;
+    } else {
+      document.getElementById('login-btn').disabled = false;
+      document.getElementById('login-btn').textContent = 'دخول';
+      err.textContent = 'مفيش نت دلوقتي، ولازم تدخل مرة واحدة والنت شغال قبل ما تقدر تشتغل أوفلاين';
+      return;
+    }
   }
   document.getElementById('login-btn').disabled = false;
   document.getElementById('login-btn').textContent = 'دخول';
@@ -5079,6 +5229,9 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   }
   const user = loginResult.username; // الاسم المؤكَّد من السيرفر (مش اللي كتبه هو بالحروف الكبيرة/الصغيرة)
   const role = loginResult.role || 'coordinator';
+  if(isOfflineLogin){
+    setTimeout(()=> showToast('📴 دخلت في وضع أوفلاين — شغلك هيتحفظ على الموبايل ويترفع تلقائي أول ما النت يرجع'), 800);
+  }
 
   if(role !== 'admin' && role !== 'viewAdmin'){
     try{
