@@ -104,7 +104,8 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   display:flex;align-items:center;gap:8px;
 }
 .user-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--amber);}
-.topbar-actions{margin-inline-start:auto;display:flex;gap:8px;flex-wrap:wrap;}
+.topbar-actions{margin-inline-start:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.tb-scroll{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .tb-btn{
   background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);
   padding:8px 13px;border-radius:9px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;
@@ -247,9 +248,11 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   .statbar{gap:7px;}
   .chip{font-size:11px;padding:5px 9px;}
   .search-wrap{max-width:none;order:10;flex-basis:100%;}
-  /* الأزرار تفضل مكتوبة وواضحة على الموبايل، والشريط بيتزحلق أفقيًا بدل ما النصوص تختفي */
-  .topbar-actions{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-  .topbar-actions::-webkit-scrollbar{display:none;}
+  /* الأزرار تفضل مكتوبة وواضحة على الموبايل، والتزحلق بيحصل جوه حاوية داخلية بس
+     عشان القايمة المنسدلة (زرار الخروج) ما تتقصش ولا تتغطى */
+  .topbar-actions{flex-wrap:nowrap;min-width:0;}
+  .tb-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-width:0;}
+  .tb-scroll::-webkit-scrollbar{display:none;}
   .tb-btn{flex-shrink:0;padding:8px 11px;font-size:12px;white-space:nowrap;}
   .tb-btn span.label{display:inline;}
 }
@@ -300,24 +303,26 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     </div>
     <div class="user-chip"><span class="dot"></span><span id="current-user-label"></span></div>
     <div class="topbar-actions">
-      <button class="tb-btn" id="btn-add-mode"><span>＋</span><span class="label">إضافة محل</span></button>
-      <button class="tb-btn" id="btn-locate" title="موقعي الحالي">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4EDBEF" stroke="#fff" stroke-width="1.6"/>
-          <circle cx="12" cy="9" r="2.6" fill="#122357"/>
-        </svg>
-        <span class="label">موقعي</span>
-      </button>
-      <button class="tb-btn" id="btn-client-list"><span class="label">قايمة العملاء</span></button>
-      <button class="tb-btn" id="btn-radar" title="رادار 5 كم">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
-          <circle cx="12" cy="12" r="9" stroke="#4EDBEF" stroke-width="1.7"/>
-          <circle cx="12" cy="12" r="5" stroke="#4EDBEF" stroke-width="1.4" opacity=".75"/>
-          <circle cx="12" cy="12" r="2" fill="#4EDBEF"/>
-        </svg>
-        <span class="label">رادار 5 كم</span>
-      </button>
-      <button class="tb-btn" id="btn-show-all-stores"><span class="label">اظهر كل المحلات على الخريطة</span></button>
+      <div class="tb-scroll">
+        <button class="tb-btn" id="btn-add-mode"><span>＋</span><span class="label">إضافة محل</span></button>
+        <button class="tb-btn" id="btn-locate" title="موقعي الحالي">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4EDBEF" stroke="#fff" stroke-width="1.6"/>
+            <circle cx="12" cy="9" r="2.6" fill="#122357"/>
+          </svg>
+          <span class="label">موقعي</span>
+        </button>
+        <button class="tb-btn" id="btn-client-list"><span class="label">قايمة العملاء</span></button>
+        <button class="tb-btn" id="btn-radar" title="رادار 5 كم">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
+            <circle cx="12" cy="12" r="9" stroke="#4EDBEF" stroke-width="1.7"/>
+            <circle cx="12" cy="12" r="5" stroke="#4EDBEF" stroke-width="1.4" opacity=".75"/>
+            <circle cx="12" cy="12" r="2" fill="#4EDBEF"/>
+          </svg>
+          <span class="label">رادار 5 كم</span>
+        </button>
+        <button class="tb-btn" id="btn-show-all-stores"><span class="label">اظهر كل المحلات على الخريطة</span></button>
+      </div>
       <div class="menu-wrap">
         <button class="tb-btn" id="btn-menu-toggle"></button>
         <div class="dropdown-menu" id="dropdown-menu">
@@ -6306,7 +6311,7 @@ function buildPopupHTML(store){
         <p class="pop-code">كود ${escapeHtml(String(store.code))}</p>
         <div class="pop-actions">
           <button class="pop-btn primary" style="width:100%;font-size:16px;padding:14px;${isThisActive?'background:var(--green);border-color:var(--green);':''}" onclick="startVisitFlow('${store.id}')">${isThisActive?'🟢 زيارة جارية':'ابدأ الزيارة'}</button>
-          <button class="pop-btn" style="width:100%;font-size:14px;padding:12px;margin-top:8px;background:var(--panel);color:var(--primary-dark);border:1.5px solid var(--line);" onclick="document.getElementById('btn-client-list').click()">قايمة العملاء</button>
+          <button class="pop-btn dir" style="width:100%;font-size:14px;padding:12px;margin-top:8px;" onclick="goToStore('${store.id}')">🧭 اظهر الطريق للعميل</button>
         </div>
       </div>`;
   }
