@@ -297,9 +297,22 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
     <div class="user-chip"><span class="dot"></span><span id="current-user-label"></span></div>
     <div class="topbar-actions">
       <button class="tb-btn" id="btn-add-mode"><span>＋</span><span class="label">إضافة محل</span></button>
-      <button class="tb-btn" id="btn-locate"><span class="label">موقعي</span></button>
+      <button class="tb-btn" id="btn-locate" title="موقعي الحالي">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4EDBEF" stroke="#fff" stroke-width="1.6"/>
+          <circle cx="12" cy="9" r="2.6" fill="#122357"/>
+        </svg>
+        <span class="label">موقعي</span>
+      </button>
       <button class="tb-btn" id="btn-client-list"><span class="label">قايمة العملاء</span></button>
-      <button class="tb-btn tb-btn-circle" id="btn-radar" title="رادار 5 كم">◉</button>
+      <button class="tb-btn" id="btn-radar" title="رادار 5 كم">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
+          <circle cx="12" cy="12" r="9" stroke="#4EDBEF" stroke-width="1.7"/>
+          <circle cx="12" cy="12" r="5" stroke="#4EDBEF" stroke-width="1.4" opacity=".75"/>
+          <circle cx="12" cy="12" r="2" fill="#4EDBEF"/>
+        </svg>
+        <span class="label">رادار 5 كم</span>
+      </button>
       <button class="tb-btn" id="btn-show-all-stores"><span class="label">اظهر كل المحلات على الخريطة</span></button>
       <div class="menu-wrap">
         <button class="tb-btn" id="btn-menu-toggle"></button>
@@ -1961,6 +1974,17 @@ function logAction(actionType, storeCode, storeName, details, store, newStoreDet
 /* ---------- رفع صورة على Drive عن طريق نفس الـ Apps Script ----------
    بنصغّر الصورة شوية عشان الرفع يبقى سريع ومايفشلش على نت ضعيف، بس بجودة عالية جدًا
    (2000px + جودة 88%) تكفي جدًا للزوم وتوضيح التفاصيل، وحجمها أصغر بكتير من صورة الكاميرا الخام. */
+/* الصور القديمة اتخزنت بروابط صفحة معاينة درايف (اللي مبتظهرش جوه <img> وتبان معطوبة).
+   الدالة دي بتحولها لرابط صورة مباشر وقت العرض، عشان الصور القديمة تظهر صح من غير ما نعيد رفعها. */
+function normalizeImageUrl(url){
+  if(!url) return '';
+  const s = String(url);
+  if(s.indexOf('drive.google.com/thumbnail') !== -1) return s; // بالشكل الصح أصلاً
+  const match = s.match(/\/d\/([a-zA-Z0-9_-]+)/) || s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(match && match[1]) return 'https://drive.google.com/thumbnail?id=' + match[1] + '&sz=w1200';
+  return s;
+}
+
 function resizeImageToBase64(file, maxDim, quality){
   return new Promise((resolve, reject)=>{
     const reader = new FileReader();
@@ -2491,15 +2515,46 @@ let radarCircleLayer = null;
 document.getElementById('btn-radar').addEventListener('click', ()=>{
   radarActive = !radarActive;
   document.getElementById('btn-radar').classList.toggle('active', radarActive);
-  if(radarActive){
-    if(!myLocation){ showToast('دوس "موقعي" الأول عشان الرادار يشتغل'); radarActive=false; document.getElementById('btn-radar').classList.remove('active'); return; }
+  if(!radarActive){
+    if(radarCircleLayer){ map.removeLayer(radarCircleLayer); radarCircleLayer = null; }
+    renderMarkers();
+    return;
+  }
+  const applyRadar = ()=>{
+    map.addLayer(cluster); // نضمن إن طبقة المحلات على الخريطة أصلاً، من غير ما نحتاج ندوس "اظهر كل المحلات"
     if(radarCircleLayer) map.removeLayer(radarCircleLayer);
     radarCircleLayer = L.circle([myLocation.lat, myLocation.lng], {radius:RADAR_RADIUS_METERS, color:'#1E6CB6', weight:1.5, fillColor:'#1E6CB6', fillOpacity:0.08}).addTo(map);
     renderMarkers();
-  } else {
-    if(radarCircleLayer){ map.removeLayer(radarCircleLayer); radarCircleLayer = null; }
-    renderMarkers();
+    const nearby = state.stores.filter(s=> haversineMeters(myLocation.lat, myLocation.lng, s.lat, s.lng) <= RADAR_RADIUS_METERS);
+    if(nearby.length > 0){
+      const bounds = L.latLngBounds(nearby.map(s=>[s.lat, s.lng]).concat([[myLocation.lat, myLocation.lng]]));
+      map.fitBounds(bounds, {padding:[40,40], maxZoom:15});
+      showToast(`🎯 فيه ${nearby.length} عميل في نطاق 5 كم منك`);
+    } else {
+      map.setView([myLocation.lat, myLocation.lng], 13);
+      showToast('مفيش عملاء في نطاق 5 كم من مكانك الحالي');
+    }
+  };
+  if(myLocation){ applyRadar(); return; }
+  // مفيش موقع محدد لسه — بنجيبه بنفسنا بدل ما نطلب منه يدوس "موقعي" الأول
+  showToast('بيحدد موقعك...');
+  if(!navigator.geolocation){
+    showToast('الجهاز مش بيدعم تحديد الموقع', true);
+    radarActive = false; document.getElementById('btn-radar').classList.remove('active');
+    return;
   }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      myLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, approximate:false };
+      lastLocationUpdateTime = Date.now();
+      applyRadar();
+    },
+    () => {
+      showToast('مش قادر يحدد موقعك — اتأكد إن الـ GPS مفتوح', true);
+      radarActive = false; document.getElementById('btn-radar').classList.remove('active');
+    },
+    { enableHighAccuracy:true, timeout:10000, maximumAge:60000 }
+  );
 });
 
 /* ===================== أدمن: العملاء (التحكم في النطاق) ===================== */
@@ -2948,7 +3003,7 @@ function renderProductsAdminList(){
   }
   box.innerHTML = filtered.map(p=>`
     <div style="display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:10px;padding:10px;">
-      ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+      ${p.image ? `<img src="${normalizeImageUrl(p.image)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
       <div style="flex:1;min-width:0;">
         <div style="font-weight:700;">${escapeHtml(p.name)}</div>
         <div style="font-size:12px;color:var(--ink-soft);" class="mono">${escapeHtml(p.sku)} — ${escapeHtml(p.category||'')}${p.subCategory ? ' / '+escapeHtml(p.subCategory) : ''}</div>
@@ -3007,7 +3062,7 @@ function renderDisabledProductsList(){
   }
   box.innerHTML = filtered.map(p=>`
     <div style="display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:10px;padding:10px;opacity:.75;">
-      ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+      ${p.image ? `<img src="${normalizeImageUrl(p.image)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
       <div style="flex:1;min-width:0;">
         <div style="font-weight:700;">${escapeHtml(p.name)}</div>
         <div style="font-size:12px;color:var(--ink-soft);" class="mono">${escapeHtml(p.sku)} — ${escapeHtml(p.category||'')}</div>
@@ -3043,7 +3098,7 @@ window.openEditProduct = function(sku){
   document.getElementById('add-product-photo').value = '';
   addProductPhotoFile = null;
   const preview = document.getElementById('add-product-photo-preview');
-  if(p.image){ preview.src = p.image; preview.style.display = 'block'; }
+  if(p.image){ preview.src = normalizeImageUrl(p.image); preview.style.display = 'block'; }
   else { preview.style.display = 'none'; }
   document.getElementById('overlay-add-product').classList.add('show');
 };
@@ -4029,18 +4084,44 @@ function checkZoneStatus(){
   }
   updateZoneStatusUI();
 
-  // بعد مهلة السماح كاملة برا النطاق، إغلاق تلقائي
-  if(!zoneAutoCloseTimer){
-    const elapsedMs = Date.now() - visitZoneState.exitTime;
-    const remainingMs = (VISIT_GRACE_PERIOD_MINUTES*60000) - elapsedMs;
-    if(remainingMs <= 0){
-      performAutoClose();
-    } else {
-      zoneAutoCloseTimer = setTimeout(()=>{
-        if(visitZoneState && visitZoneState.status === 'outside') performAutoClose();
-      }, remainingMs);
-    }
+  // بعد مهلة السماح كاملة برا النطاق، إغلاق تلقائي.
+  // مهم: متصفحات الموبايل بتوقف المؤقتات لما الشاشة تتقفل، فمش بنعتمد على setTimeout لوحده —
+  // بنخزّن وقت الخروج ونحسب الفرق الفعلي في كل فحص، وكمان بنفحص فورًا أول ما التطبيق يرجع للواجهة.
+  try{ localStorage.setItem('masar_zone_exit_' + state.currentVisitId, String(visitZoneState.exitTime)); }catch(e){}
+  const elapsedMs = Date.now() - visitZoneState.exitTime;
+  if(elapsedMs >= VISIT_GRACE_PERIOD_MINUTES*60000){
+    performAutoClose();
+    return;
   }
+  if(!zoneAutoCloseTimer){
+    zoneAutoCloseTimer = setTimeout(()=>{
+      if(visitZoneState && visitZoneState.status === 'outside') checkZoneStatus();
+    }, (VISIT_GRACE_PERIOD_MINUTES*60000) - elapsedMs);
+  }
+}
+/* أول ما المنسق يرجع يفتح التطبيق (بعد ما الشاشة كانت مقفولة أو كان في تطبيق تاني)،
+   بنفحص فورًا — لأن المؤقتات بتكون كانت واقفة وممكن المهلة خلصت وهو مش واخد باله. */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && activeVisit && zoneMonitorStore){
+    updateMyLocationThenCheckZone();
+  }
+});
+window.addEventListener('focus', ()=>{
+  if(activeVisit && zoneMonitorStore) updateMyLocationThenCheckZone();
+});
+function updateMyLocationThenCheckZone(){
+  // مهم: بنفحص فورًا بالموقع الموجود، عشان الإغلاق التلقائي مايستناش الـ GPS لو كان بطيء أو مش راد
+  checkZoneStatus();
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      myLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, approximate:false };
+      lastLocationUpdateTime = Date.now();
+      checkZoneStatus(); // فحص تاني بالموقع المحدّث
+    },
+    () => { /* فشل تحديد الموقع — الفحص الأول اللي فوق كفاية */ },
+    { enableHighAccuracy:true, timeout:8000, maximumAge:30000 }
+  );
 }
 function handleZoneExit(dist){
   sendZoneAlert(`🔴 خرجت من نطاق المحل! الزيارة لسه مفتوحة (على بعد ${Math.round(dist)} متر). ارجع عشان تقفلها، أو هتتقفل تلقائي بعد ${VISIT_GRACE_PERIOD_MINUTES} دقيقة.`);
@@ -4208,7 +4289,7 @@ window.openCategoryProducts = function(category){
       const isAvailable = draft[p.sku] != null ? draft[p.sku] : true;
       return `
       <div style="display:flex;align-items:center;gap:12px;background:var(--panel);border:1.5px solid var(--line);border-radius:12px;padding:12px;">
-        ${p.image ? `<img src="${p.image}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;">` : `<div style="width:52px;height:52px;border-radius:10px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-size:22px;">📦</div>`}
+        ${p.image ? `<img src="${normalizeImageUrl(p.image)}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;">` : `<div style="width:52px;height:52px;border-radius:10px;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-size:22px;">📦</div>`}
         <div style="flex:1;font-weight:700;">${escapeHtml(p.name)}</div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
           <label class="avail-toggle">
@@ -4227,7 +4308,7 @@ window.openCategoryProducts = function(category){
     document.getElementById('inventory-products-title').textContent = category;
     document.getElementById('inventory-products-list').innerHTML = products.map(p=>`
       <button class="pop-btn primary" style="width:100%;display:flex;align-items:center;gap:12px;text-align:right;padding:10px;" onclick="openInventoryQuantity('${escapeHtml(p.sku).replace(/'/g,"\\'")}')">
-        ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+        ${p.image ? `<img src="${normalizeImageUrl(p.image)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
         <span style="flex:1;font-weight:700;">${escapeHtml(p.name)}</span>
       </button>
     `).join('');
@@ -4322,7 +4403,7 @@ window.openSpacesProductsList = function(category){
   document.getElementById('spaces-products-title').textContent = category;
   document.getElementById('spaces-products-list').innerHTML = products.map(p=>`
     <button class="pop-btn primary" style="width:100%;display:flex;align-items:center;gap:12px;text-align:right;padding:10px;" onclick="openSpacesDetail('${escapeHtml(p.sku).replace(/'/g,"\\'")}','${escapeHtml(category).replace(/'/g,"\\'")}')">
-      ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+      ${p.image ? `<img src="${normalizeImageUrl(p.image)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
       <span style="flex:1;font-weight:700;">${escapeHtml(p.name)}</span>
     </button>
   `).join('');
@@ -4514,7 +4595,7 @@ window.openPricesProductsList = function(category){
   document.getElementById('prices-products-title').textContent = category;
   document.getElementById('prices-products-list').innerHTML = products.map(p=>`
     <button class="pop-btn primary" style="width:100%;display:flex;align-items:center;gap:12px;text-align:right;padding:10px;" onclick="openPricesDetail('${escapeHtml(p.sku).replace(/'/g,"\\'")}','${escapeHtml(category).replace(/'/g,"\\'")}')">
-      ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+      ${p.image ? `<img src="${normalizeImageUrl(p.image)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
       <span style="flex:1;font-weight:700;">${escapeHtml(p.name)}</span>
     </button>
   `).join('');
@@ -4620,7 +4701,7 @@ window.openExpiryProductsList = function(category){
   document.getElementById('expiry-products-title').textContent = category;
   document.getElementById('expiry-products-list').innerHTML = products.map(p=>`
     <button class="pop-btn primary" style="width:100%;display:flex;align-items:center;gap:12px;text-align:right;padding:10px;" onclick="openExpiryDetail('${escapeHtml(p.sku).replace(/'/g,"\\'")}','${escapeHtml(category).replace(/'/g,"\\'")}')">
-      ${p.image ? `<img src="${p.image}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
+      ${p.image ? `<img src="${normalizeImageUrl(p.image)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">` : `<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>`}
       <span style="flex:1;font-weight:700;">${escapeHtml(p.name)}</span>
     </button>
   `).join('');
