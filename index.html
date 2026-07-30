@@ -2673,6 +2673,56 @@ window.openTimedZone = async function(storeId){
   showToast(`فتحت نطاق "${store.name}" لمدة 10 دقايق`);
 };
 
+/* ============================================================
+   تحديث حي لحالة "فتح النطاق" عند المنسق — عشان لما الأدمن يفتح النطاق
+   لمحل، المنسق يلاقيها اشتغلت عنده تلقائي وهو جوه البرنامج، من غير ما
+   يحتاج يعمل ريفرش أو يخرج ويدخل تاني.
+   ============================================================ */
+let zoneOverrideSyncInterval = null;
+async function syncZoneOverridesFromServer(){
+  if(state.isAdmin || !state.repCode || state.repCode === 'ALL') return;
+  try{
+    const res = await fetch(ACTION_LOG_ENDPOINT + '?action=kvGet&project=' + encodeURIComponent(currentProject) + '&key=' + encodeURIComponent(pk('stores:'+state.repCode)));
+    const data = await res.json();
+    if(!data.ok || !data.value) return;
+    const serverStores = JSON.parse(data.value);
+    if(!Array.isArray(serverStores)) return;
+
+    let newlyOpened = null;
+    serverStores.forEach(srv=>{
+      const local = state.stores.find(s=>String(s.code)===String(srv.code));
+      if(!local) return;
+      const wasActive = isStoreZoneOverrideActive(local);
+      // بنحدّث حقول النطاق بس (الأدمن هو اللي بيتحكم فيها)، وسايبين باقي بيانات المحل زي ما هي
+      local.zoneOverrideMode = srv.zoneOverrideMode || 'none';
+      local.zoneOverrideExpiresAt = srv.zoneOverrideExpiresAt || null;
+      const isActiveNow = isStoreZoneOverrideActive(local);
+      if(!wasActive && isActiveNow) newlyOpened = local;
+    });
+
+    if(newlyOpened){
+      const isTimed = newlyOpened.zoneOverrideMode === 'timed';
+      sendZoneAlert(isTimed
+        ? `🔓 الأدمن فتحلك نطاق "${newlyOpened.name}" لمدة 10 دقايق — ابدأ بسرعة!`
+        : `🔓 الأدمن فتحلك نطاق "${newlyOpened.name}" — تقدر تبدأ الزيارة دلوقتي`);
+    }
+    // نحدّث الشاشات المفتوحة فورًا عشان الأزرار تبان مظبوطة
+    if(activeVisit && zoneMonitorStore) updateZoneOverrideBanner();
+    if(document.getElementById('overlay-client-list').classList.contains('show')){
+      renderClientListTab();
+      renderTodayTourTab();
+    }
+  }catch(e){ /* مفيش نت — هيحاول تاني في الدورة الجاية */ }
+}
+function startZoneOverrideSync(){
+  stopZoneOverrideSync();
+  syncZoneOverridesFromServer();
+  zoneOverrideSyncInterval = setInterval(syncZoneOverridesFromServer, 20000); // كل 20 ثانية
+}
+function stopZoneOverrideSync(){
+  if(zoneOverrideSyncInterval){ clearInterval(zoneOverrideSyncInterval); zoneOverrideSyncInterval = null; }
+}
+
 async function refreshZoneCounterChip(){
   if(!ACTION_LOG_ENDPOINT || !state.repCode) return;
   try{
@@ -4102,12 +4152,14 @@ function checkZoneStatus(){
 /* أول ما المنسق يرجع يفتح التطبيق (بعد ما الشاشة كانت مقفولة أو كان في تطبيق تاني)،
    بنفحص فورًا — لأن المؤقتات بتكون كانت واقفة وممكن المهلة خلصت وهو مش واخد باله. */
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'visible' && activeVisit && zoneMonitorStore){
-    updateMyLocationThenCheckZone();
+  if(document.visibilityState === 'visible'){
+    if(activeVisit && zoneMonitorStore) updateMyLocationThenCheckZone();
+    if(!state.isAdmin && state.repCode && state.repCode !== 'ALL') syncZoneOverridesFromServer();
   }
 });
 window.addEventListener('focus', ()=>{
   if(activeVisit && zoneMonitorStore) updateMyLocationThenCheckZone();
+  if(!state.isAdmin && state.repCode && state.repCode !== 'ALL') syncZoneOverridesFromServer();
 });
 function updateMyLocationThenCheckZone(){
   // مهم: بنفحص فورًا بالموقع الموجود، عشان الإغلاق التلقائي مايستناش الـ GPS لو كان بطيء أو مش راد
@@ -5581,6 +5633,7 @@ document.getElementById('login-btn').addEventListener('click', async ()=>{
   if(!state.isAdmin){
     startLiveLocationTracking(); // تتبع مباشر للمنسق وهو ماشي، مش هيحتاج يدوس "موقعي" كل شوية
     refreshZoneCounterChip();
+    startZoneOverrideSync(); // بيسمع لحظيًا لو الأدمن فتح نطاق أي محل
   }
 
   initMapOnce();
@@ -7784,6 +7837,7 @@ function doLogout(){
   stopLiveLocationTracking();
   stopVisitTimerDisplay();
   stopZoneMonitoring();
+  stopZoneOverrideSync();
   activeVisit = null;
   updateActiveVisitBanner();
   document.getElementById('app').style.display = 'none';
