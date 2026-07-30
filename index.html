@@ -247,7 +247,11 @@ header.topbar .brand-mark img.logo{height:32px;background:#fff;border-radius:8px
   .statbar{gap:7px;}
   .chip{font-size:11px;padding:5px 9px;}
   .search-wrap{max-width:none;order:10;flex-basis:100%;}
-  .tb-btn span.label{display:none;}
+  /* الأزرار تفضل مكتوبة وواضحة على الموبايل، والشريط بيتزحلق أفقيًا بدل ما النصوص تختفي */
+  .topbar-actions{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .topbar-actions::-webkit-scrollbar{display:none;}
+  .tb-btn{flex-shrink:0;padding:8px 11px;font-size:12px;white-space:nowrap;}
+  .tb-btn span.label{display:inline;}
 }
 </style>
 </head>
@@ -2467,7 +2471,7 @@ function renderClientListTab(){
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-weight:700;color:var(--primary-dark);">${item.dist!=null ? formatDistance(item.dist) : '—'}</span>
-        <button type="button" class="btn-solid" style="padding:8px 14px;font-size:13px;${isThisActive?'background:var(--green);border-color:var(--green);':''}" onclick="startVisitFromClientList('${item.store.id}')">${isThisActive?'🟢 زيارة جارية':'بدء الزيارة'}</button>
+        <button type="button" class="btn-solid" style="width:104px;min-width:104px;height:38px;padding:0;font-size:12.5px;line-height:1;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;${isThisActive?'background:var(--green);border-color:var(--green);':''}" onclick="startVisitFromClientList('${item.store.id}')">${isThisActive?'زيارة جارية':'بدء الزيارة'}</button>
       </div>
     </div>`;
   }).join('');
@@ -2502,7 +2506,7 @@ function renderTodayTourTab(){
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-weight:700;color:var(--primary-dark);">${dist!=null ? formatDistance(dist) : '—'}</span>
-          ${matchedStore ? `<button type="button" class="btn-solid" style="padding:8px 14px;font-size:13px;${isThisActive?'background:var(--green);border-color:var(--green);':''}" onclick="startVisitFromClientList('${matchedStore.id}')">${isThisActive?'🟢 زيارة جارية':'بدء الزيارة'}</button>` : ''}
+          ${matchedStore ? `<button type="button" class="btn-solid" style="width:104px;min-width:104px;height:38px;padding:0;font-size:12.5px;line-height:1;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;${isThisActive?'background:var(--green);border-color:var(--green);':''}" onclick="startVisitFromClientList('${matchedStore.id}')">${isThisActive?'زيارة جارية':'بدء الزيارة'}</button>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -2712,6 +2716,7 @@ async function syncZoneOverridesFromServer(){
       renderClientListTab();
       renderTodayTourTab();
     }
+    loadSurveysFromServer(); // نجيب أي استبيانات جديدة الأدمن ضافها، من غير ما يحتاج يخرج ويدخل تاني
   }catch(e){ /* مفيش نت — هيحاول تاني في الدورة الجاية */ }
 }
 function startZoneOverrideSync(){
@@ -3516,7 +3521,9 @@ let currentFilterSection = null;
 let currentFilterResults = [];
 
 document.getElementById('btn-open-filtering').addEventListener('click', ()=>{
-  document.getElementById('filter-section-list').innerHTML = FILTER_SECTIONS.map(s=>`
+  // حساب "العرض فقط" مسموحله يفلتر على الزيارات بس، مش كل الأقسام
+  const sections = state.isViewOnlyAdmin ? FILTER_SECTIONS.filter(s=>s.key==='visits') : FILTER_SECTIONS;
+  document.getElementById('filter-section-list').innerHTML = sections.map(s=>`
     <button class="pop-btn primary" style="width:100%;padding:14px 16px;font-size:15px;" onclick="openFilterForm('${s.key}')">${s.icon} ${s.label}</button>
   `).join('');
   document.getElementById('overlay-filter-section').classList.add('show');
@@ -6299,6 +6306,7 @@ function buildPopupHTML(store){
         <p class="pop-code">كود ${escapeHtml(String(store.code))}</p>
         <div class="pop-actions">
           <button class="pop-btn primary" style="width:100%;font-size:16px;padding:14px;${isThisActive?'background:var(--green);border-color:var(--green);':''}" onclick="startVisitFlow('${store.id}')">${isThisActive?'🟢 زيارة جارية':'ابدأ الزيارة'}</button>
+          <button class="pop-btn" style="width:100%;font-size:14px;padding:12px;margin-top:8px;background:var(--panel);color:var(--primary-dark);border:1.5px solid var(--line);" onclick="document.getElementById('btn-client-list').click()">قايمة العملاء</button>
         </div>
       </div>`;
   }
